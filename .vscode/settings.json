@@ -1,0 +1,28 @@
+{
+    "files.associations": {
+        "__bit_reference": "cpp",
+        "__verbose_abort": "cpp",
+        "bitset": "cpp",
+        "cctype": "cpp",
+        "cmath": "cpp",
+        "cstddef": "cpp",
+        "cstdint": "cpp",
+        "cstdio": "cpp",
+        "cstdlib": "cpp",
+        "cstring": "cpp",
+        "cwchar": "cpp",
+        "cwctype": "cpp",
+        "execution": "cpp",
+        "memory": "cpp",
+        "initializer_list": "cpp",
+        "iosfwd": "cpp",
+        "limits": "cpp",
+        "new": "cpp",
+        "stdexcept": "cpp",
+        "string": "cpp",
+        "string_view": "cpp",
+        "typeinfo": "cpp",
+        "variant": "cpp",
+        "algorithm": "cpp"
+    }
+}
