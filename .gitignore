@@ -1,8 +1,21 @@
-# System files
+# System / editor
 .DS_Store
+.vscode/
+.idea/
+*.swp
+*~
 
 # Build outputs
 *.o
 search
 search.exe
 build/
+cmake-build-*/
+out/
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
+_deps/
