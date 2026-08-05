@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.3.0] — 2026-08-05
+
+### Added
+- Delta + varbyte posting compression (index format v2; still loads v1)
+- Multithreaded corpus tokenization via `search index build --threads N`
+- Vendored Catch2 under `third_party/` (CI no longer depends on FetchContent network)
+- Parser/tokenizer fuzz smoke binary (`mse_fuzz`)
+- clang-tidy CI job
+- Windows (`windows-latest`) in the build/test matrix
+- `docs/ROADMAP.md`
+
 ## [0.2.0] — 2026-08-05
 
 ### Added
@@ -8,7 +19,7 @@
 - BM25 top-k ranking and CLI modes (`index` / `query` / `bench`)
 - Two-pointer and galloping posting intersection
 - Binary index serialization (`MSEI`)
-- Catch2 test suite (43 cases) and ASan/UBSan CI job
+- Catch2 test suite and ASan/UBSan CI job
 - Linux + macOS Debug/Release GitHub Actions workflow
 - Docs: query language, design, performance methodology, published bench numbers
 

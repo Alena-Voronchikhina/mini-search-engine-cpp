@@ -6,7 +6,7 @@ A from-scratch **information retrieval** engine in modern C++20: positional inve
 - Indexes **~107k docs/s**
 - BM25 query **p50 ≈ 684 µs**, **p95 ≈ 801 µs**
 - Galloping intersection cuts skewed-list **p95 latency by ~95.6%** vs two-pointer
-- **43 tests** pass in CI (Linux + macOS, Debug/Release) with a dedicated **ASan+UBSan** job
+- **49 tests** pass in CI across Linux / macOS / Windows (Debug+Release), plus **ASan+UBSan**, **clang-tidy**, and fuzz smoke
 
 ## Features
 
@@ -16,8 +16,9 @@ A from-scratch **information retrieval** engine in modern C++20: positional inve
 - Tokenizer: case folding, punctuation splitting, optional stopwords + Porter stemming
 - Query parser with offset + message on syntax errors
 - Two-pointer and **galloping** posting intersection
-- Binary index save/load (`MSEI` format) for fast startup
-- Catch2 unit/integration tests; benchmark harness with published numbers
+- Binary index save/load (`MSEI` v2 with delta+varbyte compressed postings)
+- Optional multithreaded tokenization (`--threads N`)
+- Catch2 tests, fuzz smoke binary, clang-tidy CI; benchmark harness with published numbers
 
 ## Architecture
 
@@ -49,7 +50,8 @@ flowchart LR
 | AND (galloping) | O(\|short\| · log\|long\|) | Wins when lengths are skewed |
 | Phrase | O(candidates · phrase_len) | Position adjacency check |
 | BM25 top‑k | O(\|D_q\| · \|q\| + \|D_q\| log k) | Min-heap of size k |
-| Serialize / load | O(postings) | Little-endian binary |
+| Serialize / load | O(postings) | v2: delta + varbyte compressed |
+| Parallel tokenize | O(T / threads) | Index assembly remains serial |
 
 ## Quick start
 
@@ -58,8 +60,8 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j
 ctest --test-dir build --output-on-failure
 
-# Build an index from fixtures
-./build/search index build data/fixtures -o index.bin
+# Build an index from fixtures (parallel tokenize)
+./build/search index build data/fixtures -o index.bin --threads 4
 
 # Boolean / phrase
 ./build/search query index.bin 'cats AND (milk OR dogs)' --mode boolean
@@ -73,7 +75,7 @@ ctest --test-dir build --output-on-failure
 # or: ./scripts/run_benchmarks.sh 5000
 ```
 
-CMake options: `MSE_BUILD_TESTS`, `MSE_BUILD_BENCH`, `MSE_ENABLE_ASAN`, `MSE_ENABLE_UBSAN`.
+CMake options: `MSE_BUILD_TESTS`, `MSE_BUILD_BENCH`, `MSE_BUILD_FUZZ`, `MSE_ENABLE_ASAN`, `MSE_ENABLE_UBSAN`, `MSE_ENABLE_CLANG_TIDY`.
 
 ## Benchmark results
 
@@ -96,6 +98,7 @@ Methodology: [`docs/performance.md`](docs/performance.md).
 - [`docs/query-language.md`](docs/query-language.md) — syntax, precedence, errors
 - [`docs/design.md`](docs/design.md) — indexing, ranking, intersection
 - [`docs/performance.md`](docs/performance.md) — how numbers are measured
+- [`docs/ROADMAP.md`](docs/ROADMAP.md) — completed checklist + stretch goals
 - [`CHANGELOG.md`](CHANGELOG.md)
 
 ## Project layout
