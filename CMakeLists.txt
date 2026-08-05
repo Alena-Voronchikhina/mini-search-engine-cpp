@@ -55,8 +55,9 @@ if(MSE_BUILD_TESTS)
   include(FetchContent)
   FetchContent_Declare(
     Catch2
-    GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-    GIT_TAG v3.5.4
+    URL https://github.com/catchorg/Catch2/archive/refs/tags/v3.5.4.tar.gz
+    URL_HASH SHA256=b7754b711242c167d8f60b890695347f90a1ebc95949a045385114165d606dbb
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
   )
   FetchContent_MakeAvailable(Catch2)
   list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
