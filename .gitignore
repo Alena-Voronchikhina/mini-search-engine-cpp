@@ -10,8 +10,10 @@
 search
 search.exe
 build/
+build-san/
 cmake-build-*/
 out/
+compile_commands.json
 
 # CMake
 CMakeCache.txt
@@ -19,3 +21,8 @@ CMakeFiles/
 cmake_install.cmake
 CTestTestfile.cmake
 _deps/
+
+# Generated corpora / indexes
+data/bench/
+*.bin
+!data/fixtures/

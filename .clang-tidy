@@ -1,0 +1,4 @@
+Checks: '-*,readability-*,modernize-*,performance-*,bugprone-*'
+WarningsAsErrors: ''
+HeaderFilterRegex: 'include/mse/.*'
+FormatStyle: file

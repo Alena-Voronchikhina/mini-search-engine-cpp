@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        build_type: [Debug, Release]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: >
+          cmake -S . -B build
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          -DMSE_BUILD_TESTS=ON
+          -DMSE_BUILD_BENCH=ON
+      - name: Build
+        run: cmake --build build --config ${{ matrix.build_type }} -j
+      - name: Test
+        run: ctest --test-dir build --output-on-failure --build-config ${{ matrix.build_type }}
+
+  sanitizers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure with ASan+UBSan
+        run: >
+          cmake -S . -B build-san
+          -DCMAKE_BUILD_TYPE=Debug
+          -DMSE_BUILD_TESTS=ON
+          -DMSE_BUILD_BENCH=OFF
+          -DMSE_ENABLE_ASAN=ON
+          -DMSE_ENABLE_UBSAN=ON
+      - name: Build
+        run: cmake --build build-san -j
+      - name: Test
+        run: ctest --test-dir build-san --output-on-failure
+        env:
+          ASAN_OPTIONS: detect_leaks=1
+          UBSAN_OPTIONS: print_stacktrace=1

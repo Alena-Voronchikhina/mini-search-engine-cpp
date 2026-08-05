@@ -1,51 +1,128 @@
 # Mini Search Engine (C++)
 
-A small inverted-index search engine over a local text corpus. Documents are tokenized, lowercased, and queried with **AND** semantics (every term must appear).
+A from-scratch **information retrieval** engine in modern C++20: positional inverted index, boolean + phrase queries, BM25 top‑k ranking, index serialization, and measurable posting-list optimizations.
+
+**Outcomes (Apple M1, Release, synthetic 5k-doc corpus):**
+- Indexes **~107k docs/s**
+- BM25 query **p50 ≈ 684 µs**, **p95 ≈ 801 µs**
+- Galloping intersection cuts skewed-list **p95 latency by ~95.6%** vs two-pointer
+- **43 tests** pass in CI (Linux + macOS, Debug/Release) with a dedicated **ASan+UBSan** job
 
 ## Features
 
-- Inverted index: word → sorted document IDs
-- Normalized tokens (letters only, case-insensitive)
-- AND queries via set intersection
-- Interactive REPL or one-shot CLI queries
+- Boolean queries: `AND` / `OR` / `NOT`, parentheses, juxtaposition = AND
+- Phrase search: `"adjacent tokens"` via positional postings
+- BM25 ranked retrieval with top‑k heap
+- Tokenizer: case folding, punctuation splitting, optional stopwords + Porter stemming
+- Query parser with offset + message on syntax errors
+- Two-pointer and **galloping** posting intersection
+- Binary index save/load (`MSEI` format) for fast startup
+- Catch2 unit/integration tests; benchmark harness with published numbers
 
-## Build
+## Architecture
 
-Requires CMake 3.16+ and a C++17 compiler.
+```mermaid
+flowchart LR
+  corpus[Text corpus] --> tok[Tokenizer]
+  tok --> idx[Positional inverted index]
+  idx --> ser[Binary serialize]
+  ser --> disk[index.bin]
+  disk --> load[Deserialize]
+  qstr[Query string] --> parser[Query parser]
+  parser --> ast[AST]
+  ast --> boolEval[Boolean / phrase eval]
+  ast --> bm25[BM25 ranker]
+  load --> boolEval
+  load --> bm25
+  boolEval --> results[Doc IDs or top-k]
+  bm25 --> results
+```
+
+**Core data structure:** term → sorted postings `(doc_id, [positions...])`, plus per-doc length and global `N` / `avgdl` for BM25.
+
+## Complexity
+
+| Operation | Time (typical) | Notes |
+|-----------|----------------|-------|
+| Index build | O(T) | T = total tokens |
+| AND (two-pointer) | O(\|A\| + \|B\|) | Baseline |
+| AND (galloping) | O(\|short\| · log\|long\|) | Wins when lengths are skewed |
+| Phrase | O(candidates · phrase_len) | Position adjacency check |
+| BM25 top‑k | O(\|D_q\| · \|q\| + \|D_q\| log k) | Min-heap of size k |
+| Serialize / load | O(postings) | Little-endian binary |
+
+## Quick start
 
 ```bash
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build
+cmake --build build -j
 ctest --test-dir build --output-on-failure
+
+# Build an index from fixtures
+./build/search index build data/fixtures -o index.bin
+
+# Boolean / phrase
+./build/search query index.bin 'cats AND (milk OR dogs)' --mode boolean
+./build/search query index.bin '"machine learning"' --mode boolean
+
+# Ranked
+./build/search query index.bin 'cats milk' --mode bm25 --topk 5
+
+# Benchmarks
+./build/mse_bench --docs 5000 --out docs/bench-latest.md
+# or: ./scripts/run_benchmarks.sh 5000
 ```
 
-## Run
+CMake options: `MSE_BUILD_TESTS`, `MSE_BUILD_BENCH`, `MSE_ENABLE_ASAN`, `MSE_ENABLE_UBSAN`.
 
-From the build directory (so `data/` resolves):
+## Benchmark results
 
-```bash
-# Interactive
-./search
+From [`docs/bench-latest.md`](docs/bench-latest.md) (Apple M1, macOS, Release, seed=42):
 
-# One-shot AND query
-./search cats
-./search cats milk
+| Metric | Value |
+|--------|-------|
+| Docs | 5,000 |
+| Build throughput | ~107,054 docs/s |
+| Index on disk | ~1.95 MB |
+| BM25 p50 / p95 | 684 µs / 801 µs |
+| Intersect two-pointer p95 | 47.1 µs |
+| Intersect galloping p95 | 2.1 µs |
+| **Galloping p95 improvement** | **~95.6%** |
+
+Methodology: [`docs/performance.md`](docs/performance.md).
+
+## Documentation
+
+- [`docs/query-language.md`](docs/query-language.md) — syntax, precedence, errors
+- [`docs/design.md`](docs/design.md) — indexing, ranking, intersection
+- [`docs/performance.md`](docs/performance.md) — how numbers are measured
+- [`CHANGELOG.md`](CHANGELOG.md)
+
+## Project layout
+
+```
+include/mse/     Public library headers
+src/             Library + CLI (search)
+tests/           Catch2 (43 cases)
+benchmarks/      mse_bench harness
+data/fixtures/   Tiny corpus for demos/tests
+scripts/         Corpus prep + benchmark runners
+docs/            Design + methodology + latest numbers
 ```
 
-Sample corpus:
+## Contributing
 
-| File | Text |
-|------|------|
-| `data/doc1.txt` | Cats love milk. |
-| `data/doc2.txt` | Dogs and cats play. |
+- C++20, clang-format (LLVM-based [`.clang-format`](.clang-format))
+- Keep changes covered by tests; run `ctest` before PRs
+- Prefer small, reviewable PRs (IR feature / perf / docs)
 
-`cats` matches both docs; `cats milk` matches only `doc1`.
+## Limitations & roadmap (Phase 2)
 
-## Layout
+- No delta/varbyte posting compression yet
+- Indexing is single-threaded
+- No Windows CI matrix (Linux + macOS only for now)
+- No parser fuzzing / clang-tidy gate in CI yet
 
-```
-include/Indexer.hpp   # Indexer API
-src/Indexer.cpp       # Build + query_and
-src/main.cpp          # CLI / REPL
-data/                 # Sample documents
-```
+## License
+
+Personal portfolio project — see repository for terms.

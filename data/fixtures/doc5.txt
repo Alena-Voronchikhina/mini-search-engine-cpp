@@ -1,0 +1,1 @@
+Phrase search needs adjacent token positions.
