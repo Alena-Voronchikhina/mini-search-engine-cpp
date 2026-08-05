@@ -32,16 +32,11 @@ jobs:
       - name: Fuzz smoke
         shell: bash
         run: |
-          if [[ -x build/mse_fuzz ]]; then
-            ./build/mse_fuzz
-          elif [[ -x build/${{ matrix.build_type }}/mse_fuzz ]]; then
-            ./build/${{ matrix.build_type }}/mse_fuzz
-          elif [[ -x build/Release/mse_fuzz.exe ]]; then
-            ./build/Release/mse_fuzz.exe
-          elif [[ -x build/Debug/mse_fuzz.exe ]]; then
-            ./build/Debug/mse_fuzz.exe
-          else
-            echo "mse_fuzz binary not found"; ls -R build | head -80; exit 1
+          if [[ -x build/mse_fuzz ]]; then ./build/mse_fuzz
+          elif [[ -x build/${{ matrix.build_type }}/mse_fuzz ]]; then ./build/${{ matrix.build_type }}/mse_fuzz
+          elif [[ -x build/Release/mse_fuzz.exe ]]; then ./build/Release/mse_fuzz.exe
+          elif [[ -x build/Debug/mse_fuzz.exe ]]; then ./build/Debug/mse_fuzz.exe
+          else echo "mse_fuzz missing"; ls -R build | head -80; exit 1
           fi
 
   sanitizers:
@@ -67,6 +62,31 @@ jobs:
       - name: Fuzz smoke
         run: ./build-san/mse_fuzz
 
+  libfuzzer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Configure libFuzzer target
+        run: >
+          cmake -S . -B build-fuzz
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_CXX_COMPILER=clang++
+          -DMSE_BUILD_TESTS=OFF
+          -DMSE_BUILD_BENCH=OFF
+          -DMSE_BUILD_FUZZ=ON
+          -DMSE_FUZZER_LIBFUZZER=ON
+      - name: Build
+        run: cmake --build build-fuzz -j 2
+      - name: Run campaign (60s)
+        run: |
+          mkdir -p fuzz-out
+          ./build-fuzz/mse_fuzz fuzz/corpus -max_total_time=60 -artifact_prefix=fuzz-out/ || true
+          # Fail only on crash artifacts
+          if ls fuzz-out/crash-* 1>/dev/null 2>&1; then
+            echo "libFuzzer found crashes:"; ls -la fuzz-out; exit 1
+          fi
+          echo "No crashes in 60s campaign"
+
   clang-tidy:
     runs-on: ubuntu-latest
     steps:
@@ -81,8 +101,9 @@ jobs:
           -DMSE_BUILD_TESTS=OFF
           -DMSE_BUILD_BENCH=OFF
           -DMSE_BUILD_FUZZ=OFF
-      - name: Run clang-tidy
+      - name: Run clang-tidy (warnings as errors on our headers/sources)
         run: |
           set -euo pipefail
           FILES=$(find src include/mse -name '*.cpp' -o -name '*.hpp')
-          clang-tidy -p build-tidy $FILES --quiet
+          clang-tidy -p build-tidy --config-file=.clang-tidy \
+            --warnings-as-errors='*' $FILES

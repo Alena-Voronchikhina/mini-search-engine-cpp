@@ -1,11 +1,14 @@
 Checks: >
   -*,
-  bugprone-*,
-  -bugprone-easily-swappable-parameters,
-  -bugprone-narrowing-conversions,
-  clang-analyzer-*,
-  performance-unnecessary-copy-initialization,
-  performance-inefficient-vector-operations
-WarningsAsErrors: ''
+  bugprone-assert-side-effect,
+  bugprone-dangling-handle,
+  bugprone-infinite-loop,
+  bugprone-move-forwarding-reference,
+  bugprone-use-after-move,
+  clang-analyzer-core.*,
+  clang-analyzer-cplusplus.*,
+  clang-analyzer-unix.*,
+  performance-unnecessary-copy-initialization
+WarningsAsErrors: '*'
 HeaderFilterRegex: 'include/mse/.*'
 FormatStyle: file

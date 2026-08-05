@@ -2,6 +2,7 @@
 
 #include "mse/types.hpp"
 
+#include <cstdint>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -26,6 +27,8 @@ public:
     // Friends for serialization.
     friend bool save_index(const Index& index, const std::string& path);
     friend bool load_index(Index& index, const std::string& path);
+    friend bool load_index_from_memory(Index& index, const std::uint8_t* data, std::size_t size);
+    friend struct IndexSerializer;
 
 private:
     std::vector<DocumentMeta> docs_;

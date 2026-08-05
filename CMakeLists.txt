@@ -39,6 +39,8 @@ add_library(mse
   src/serialize.cpp
   src/compress.cpp
   src/build.cpp
+  src/rewrite.cpp
+  src/mmap_load.cpp
 )
 add_library(mse::mse ALIAS mse)
 target_include_directories(mse
@@ -95,6 +97,9 @@ if(MSE_BUILD_TESTS)
     tests/test_integration.cpp
     tests/test_compress.cpp
     tests/test_build.cpp
+    tests/test_skip.cpp
+    tests/test_rewrite.cpp
+    tests/test_mmap.cpp
   )
   target_link_libraries(mse_tests PRIVATE mse Catch2::Catch2WithMain)
   catch_discover_tests(mse_tests WORKING_DIRECTORY ${CMAKE_BINARY_DIR})

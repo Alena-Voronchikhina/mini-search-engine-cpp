@@ -1,6 +1,7 @@
 #include "mse/intersect.hpp"
 
 #include <algorithm>
+#include <cmath>
 
 namespace mse {
 
@@ -74,6 +75,69 @@ std::vector<DocId> intersect_galloping(const std::vector<DocId>& a, const std::v
         }
     }
     return out;
+}
+
+SkipList make_skip_list(std::vector<DocId> docs) {
+    SkipList sl;
+    sl.docs = std::move(docs);
+    if (sl.docs.empty()) {
+        sl.interval = 1;
+        return sl;
+    }
+    // interval ≈ √n (at least 1)
+    sl.interval = static_cast<std::size_t>(std::sqrt(static_cast<double>(sl.docs.size())));
+    if (sl.interval < 1)
+        sl.interval = 1;
+    for (std::size_t i = 0; i < sl.docs.size(); i += sl.interval) {
+        const std::size_t dest = std::min(i + sl.interval, sl.docs.size());
+        sl.skip_to.push_back(dest);
+        sl.skip_doc.push_back(dest < sl.docs.size() ? sl.docs[dest] : sl.docs.back() + 1);
+    }
+    return sl;
+}
+
+namespace {
+
+// Advance cursor on skip list until docs[cursor] >= target (or end).
+std::size_t skip_advance(const SkipList& list, std::size_t cursor, DocId target) {
+    const std::size_t n = list.docs.size();
+    while (cursor < n && list.docs[cursor] < target) {
+        if (list.interval > 0 && cursor % list.interval == 0) {
+            const std::size_t block = cursor / list.interval;
+            if (block < list.skip_to.size()) {
+                const std::size_t dest = list.skip_to[block];
+                if (dest < n && list.docs[dest] <= target) {
+                    cursor = dest;
+                    continue;
+                }
+            }
+        }
+        ++cursor;
+    }
+    return cursor;
+}
+
+} // namespace
+
+std::vector<DocId> intersect_skip_pointers(const SkipList& a, const SkipList& b) {
+    std::vector<DocId> out;
+    std::size_t i = 0, j = 0;
+    while (i < a.docs.size() && j < b.docs.size()) {
+        if (a.docs[i] == b.docs[j]) {
+            out.push_back(a.docs[i]);
+            ++i;
+            ++j;
+        } else if (a.docs[i] < b.docs[j]) {
+            i = skip_advance(a, i, b.docs[j]);
+        } else {
+            j = skip_advance(b, j, a.docs[i]);
+        }
+    }
+    return out;
+}
+
+std::vector<DocId> intersect_with_skips(const std::vector<DocId>& a, const std::vector<DocId>& b) {
+    return intersect_skip_pointers(make_skip_list(a), make_skip_list(b));
 }
 
 std::vector<DocId> unite(const std::vector<DocId>& a, const std::vector<DocId>& b) {

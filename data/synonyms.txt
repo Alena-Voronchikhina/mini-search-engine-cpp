@@ -1,0 +1,4 @@
+# cats, kittens, and felines are interchangeable for demo queries
+cat,kitten,feline
+dog,puppy,canine
+car,automobile,vehicle
