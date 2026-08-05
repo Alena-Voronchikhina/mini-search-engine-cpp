@@ -8,7 +8,7 @@
 
 namespace mse {
 
-enum class IntersectMode { TwoPointer, Galloping };
+enum class IntersectMode { TwoPointer, Galloping, SkipPointers };
 
 [[nodiscard]] std::vector<DocId> evaluate_boolean(const Index& index, const QueryNode& root,
                                                   IntersectMode mode = IntersectMode::Galloping);
