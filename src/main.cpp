@@ -1,3 +1,4 @@
+#include "mse/build.hpp"
 #include "mse/index.hpp"
 #include "mse/query_eval.hpp"
 #include "mse/query_parser.hpp"
@@ -34,7 +35,7 @@ namespace {
 void usage() {
     std::cerr
         << "Usage:\n"
-        << "  search index build <dir> -o <index.bin> [--stem] [--stopwords]\n"
+        << "  search index build <dir> -o <index.bin> [--stem] [--stopwords] [--threads N]\n"
         << "  search query <index.bin> <query> [--mode boolean|bm25] [--topk N]\n"
         << "         [--stem] [--stopwords] [--intersect two|gallop]\n"
         << "  search bench [--docs N] [--out path] [--seed S]\n";
@@ -66,14 +67,6 @@ std::uint64_t rss_bytes() {
 #endif
 }
 
-bool read_file(const fs::path& p, std::string& out) {
-    std::ifstream in(p);
-    if (!in)
-        return false;
-    out.assign(std::istreambuf_iterator<char>(in), {});
-    return true;
-}
-
 int cmd_index(std::vector<std::string_view> args) {
     if (args.size() < 2 || args[0] != "build") {
         usage();
@@ -81,14 +74,17 @@ int cmd_index(std::vector<std::string_view> args) {
     }
     fs::path dir{std::string(args[1])};
     fs::path out_path;
-    mse::TokenizerOptions opts;
+    mse::BuildOptions opts;
+    opts.threads = 0; // hardware_concurrency
     for (std::size_t i = 2; i < args.size(); ++i) {
         if (args[i] == "-o" && i + 1 < args.size()) {
             out_path = std::string(args[++i]);
         } else if (args[i] == "--stem") {
-            opts.stem = true;
+            opts.tokenizer.stem = true;
         } else if (args[i] == "--stopwords") {
-            opts.remove_stopwords = true;
+            opts.tokenizer.remove_stopwords = true;
+        } else if (args[i] == "--threads" && i + 1 < args.size()) {
+            opts.threads = static_cast<std::size_t>(std::stoul(std::string(args[++i])));
         } else {
             std::cerr << "Unknown arg: " << args[i] << "\n";
             return 2;
@@ -99,28 +95,12 @@ int cmd_index(std::vector<std::string_view> args) {
         return 2;
     }
 
-    mse::Tokenizer tok(opts);
-    mse::Index index;
-    std::size_t n = 0;
-    for (auto const& entry : fs::recursive_directory_iterator(dir)) {
-        if (!entry.is_regular_file())
-            continue;
-        const auto ext = entry.path().extension().string();
-        if (ext != ".txt" && ext != ".md")
-            continue;
-        std::string text;
-        if (!read_file(entry.path(), text))
-            continue;
-        index.add_document(entry.path().string(), tok.tokenize(text));
-        ++n;
-    }
-    index.finalize();
+    auto index = mse::build_index_from_dir(dir, opts);
     if (!mse::save_index(index, out_path.string())) {
         std::cerr << "Failed to write " << out_path << "\n";
         return 1;
     }
-    std::cout << "Indexed " << n << " docs -> " << out_path << " (" << index.num_docs()
-              << " documents)\n";
+    std::cout << "Indexed " << index.num_docs() << " docs -> " << out_path << "\n";
     return 0;
 }
 
