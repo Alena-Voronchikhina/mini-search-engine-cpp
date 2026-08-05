@@ -11,6 +11,8 @@ search
 search.exe
 build/
 build-san/
+build-tidy/
+third_party/Catch2/build/
 cmake-build-*/
 out/
 compile_commands.json

@@ -11,6 +11,8 @@ std::vector<DocId> intersect(const std::vector<DocId>& a, const std::vector<DocI
                              IntersectMode mode) {
     if (mode == IntersectMode::TwoPointer)
         return intersect_two_pointer(a, b);
+    if (mode == IntersectMode::SkipPointers)
+        return intersect_with_skips(a, b);
     return intersect_galloping(a, b);
 }
 

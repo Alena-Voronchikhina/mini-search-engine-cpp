@@ -1,0 +1,1 @@
+This repository vendors Catch2 v3.5.4 under third_party/Catch2 (BSL-1.0). See third_party/Catch2/LICENSE.txt.
