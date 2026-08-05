@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.4.0] — 2026-08-05
+
+### Added
+- Skip-pointer posting lists + `--intersect skip`
+- Synonym / query rewrite (`--synonyms file`, see `data/synonyms.txt`)
+- mmap index load (`--mmap` / `load_index_mmap`)
+- libFuzzer CI campaign (60s) with `fuzz/corpus`
+- clang-tidy WarningsAsErrors in CI
+
 ## [0.3.0] — 2026-08-05
 
 ### Added

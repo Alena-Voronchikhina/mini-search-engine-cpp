@@ -6,7 +6,7 @@ A from-scratch **information retrieval** engine in modern C++20: positional inve
 - Indexes **~107k docs/s**
 - BM25 query **p50 ≈ 684 µs**, **p95 ≈ 801 µs**
 - Galloping intersection cuts skewed-list **p95 latency by ~95.6%** vs two-pointer
-- **49 tests** pass in CI across Linux / macOS / Windows (Debug+Release), plus **ASan+UBSan**, **clang-tidy**, and fuzz smoke
+- **55 tests** pass in CI across Linux / macOS / Windows (Debug+Release), plus **ASan+UBSan**, **clang-tidy (Werror)**, fuzz smoke, and a **60s libFuzzer** campaign
 
 ## Features
 
@@ -15,10 +15,10 @@ A from-scratch **information retrieval** engine in modern C++20: positional inve
 - BM25 ranked retrieval with top‑k heap
 - Tokenizer: case folding, punctuation splitting, optional stopwords + Porter stemming
 - Query parser with offset + message on syntax errors
-- Two-pointer and **galloping** posting intersection
-- Binary index save/load (`MSEI` v2 with delta+varbyte compressed postings)
-- Optional multithreaded tokenization (`--threads N`)
-- Catch2 tests, fuzz smoke binary, clang-tidy CI; benchmark harness with published numbers
+- Two-pointer, **galloping**, and **skip-pointer** posting intersection
+- Binary index save/load (`MSEI` v2 with delta+varbyte compressed postings); optional **mmap** load
+- Optional multithreaded tokenization (`--threads N`) and **synonym rewrite** (`--synonyms`)
+- Catch2 tests, fuzz smoke + libFuzzer CI, clang-tidy Werror; benchmark harness with published numbers
 
 ## Architecture
 
@@ -64,8 +64,8 @@ ctest --test-dir build --output-on-failure
 ./build/search index build data/fixtures -o index.bin --threads 4
 
 # Boolean / phrase
-./build/search query index.bin 'cats AND (milk OR dogs)' --mode boolean
-./build/search query index.bin '"machine learning"' --mode boolean
+./build/search query index.bin 'cats AND (milk OR dogs)' --mode boolean --intersect skip
+./build/search query index.bin kitten --mode boolean --synonyms data/synonyms.txt --mmap
 
 # Ranked
 ./build/search query index.bin 'cats milk' --mode bm25 --topk 5
