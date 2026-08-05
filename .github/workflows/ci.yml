@@ -17,11 +17,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Configure
-        run: >
-          cmake -S . -B build
-          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-          -DMSE_BUILD_TESTS=ON
-          -DMSE_BUILD_BENCH=ON
+        run: |
+          set -e
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+            -DMSE_BUILD_TESTS=ON \
+            -DMSE_BUILD_BENCH=ON \
+          || cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+            -DMSE_BUILD_TESTS=ON \
+            -DMSE_BUILD_BENCH=ON
       - name: Build
         run: cmake --build build --config ${{ matrix.build_type }} -j
       - name: Test
