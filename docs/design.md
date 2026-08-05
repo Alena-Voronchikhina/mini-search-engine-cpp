@@ -41,7 +41,13 @@ Top‑k uses a size‑`k` min-heap.
 
 ## Serialization
 
-File magic `MSEI`, version `1`, little-endian:
+File magic `MSEI`, little-endian:
 
-1. `#docs`, `avgdl`, doc path + length records
-2. `#terms`, then for each term: string, `#postings`, each `(doc_id, #pos, positions…)`
+- **v1** — uncompressed postings `(doc_id, positions…)`
+- **v2** (default write) — doc-id list and each position list are **delta-encoded** then **varbyte**-compressed
+
+Loaders accept both versions. See `mse::compress_*` in `include/mse/compress.hpp`.
+
+## Parallel indexing
+
+`build_index_from_dir(..., {.threads = N})` tokenizes documents on a thread pool (paths sorted for stable doc order), then assembles the inverted index on the main thread. `N = 0` selects `hardware_concurrency`.

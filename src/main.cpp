@@ -1,10 +1,13 @@
+#include "mse/build.hpp"
 #include "mse/index.hpp"
+#include "mse/intersect.hpp"
+#include "mse/mmap_load.hpp"
 #include "mse/query_eval.hpp"
 #include "mse/query_parser.hpp"
 #include "mse/ranker.hpp"
+#include "mse/rewrite.hpp"
 #include "mse/serialize.hpp"
 #include "mse/tokenizer.hpp"
-#include "mse/intersect.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -14,6 +17,7 @@
 #include <fstream>
 #include <functional>
 #include <iostream>
+#include <memory>
 #include <numeric>
 #include <random>
 #include <sstream>
@@ -34,9 +38,10 @@ namespace {
 void usage() {
     std::cerr
         << "Usage:\n"
-        << "  search index build <dir> -o <index.bin> [--stem] [--stopwords]\n"
+        << "  search index build <dir> -o <index.bin> [--stem] [--stopwords] [--threads N]\n"
         << "  search query <index.bin> <query> [--mode boolean|bm25] [--topk N]\n"
-        << "         [--stem] [--stopwords] [--intersect two|gallop]\n"
+        << "         [--stem] [--stopwords] [--intersect two|gallop|skip]\n"
+        << "         [--synonyms file] [--mmap]\n"
         << "  search bench [--docs N] [--out path] [--seed S]\n";
 }
 
@@ -66,14 +71,6 @@ std::uint64_t rss_bytes() {
 #endif
 }
 
-bool read_file(const fs::path& p, std::string& out) {
-    std::ifstream in(p);
-    if (!in)
-        return false;
-    out.assign(std::istreambuf_iterator<char>(in), {});
-    return true;
-}
-
 int cmd_index(std::vector<std::string_view> args) {
     if (args.size() < 2 || args[0] != "build") {
         usage();
@@ -81,14 +78,17 @@ int cmd_index(std::vector<std::string_view> args) {
     }
     fs::path dir{std::string(args[1])};
     fs::path out_path;
-    mse::TokenizerOptions opts;
+    mse::BuildOptions opts;
+    opts.threads = 0; // hardware_concurrency
     for (std::size_t i = 2; i < args.size(); ++i) {
         if (args[i] == "-o" && i + 1 < args.size()) {
             out_path = std::string(args[++i]);
         } else if (args[i] == "--stem") {
-            opts.stem = true;
+            opts.tokenizer.stem = true;
         } else if (args[i] == "--stopwords") {
-            opts.remove_stopwords = true;
+            opts.tokenizer.remove_stopwords = true;
+        } else if (args[i] == "--threads" && i + 1 < args.size()) {
+            opts.threads = static_cast<std::size_t>(std::stoul(std::string(args[++i])));
         } else {
             std::cerr << "Unknown arg: " << args[i] << "\n";
             return 2;
@@ -99,28 +99,12 @@ int cmd_index(std::vector<std::string_view> args) {
         return 2;
     }
 
-    mse::Tokenizer tok(opts);
-    mse::Index index;
-    std::size_t n = 0;
-    for (auto const& entry : fs::recursive_directory_iterator(dir)) {
-        if (!entry.is_regular_file())
-            continue;
-        const auto ext = entry.path().extension().string();
-        if (ext != ".txt" && ext != ".md")
-            continue;
-        std::string text;
-        if (!read_file(entry.path(), text))
-            continue;
-        index.add_document(entry.path().string(), tok.tokenize(text));
-        ++n;
-    }
-    index.finalize();
+    auto index = mse::build_index_from_dir(dir, opts);
     if (!mse::save_index(index, out_path.string())) {
         std::cerr << "Failed to write " << out_path << "\n";
         return 1;
     }
-    std::cout << "Indexed " << n << " docs -> " << out_path << " (" << index.num_docs()
-              << " documents)\n";
+    std::cout << "Indexed " << index.num_docs() << " docs -> " << out_path << "\n";
     return 0;
 }
 
@@ -135,6 +119,8 @@ int cmd_query(std::vector<std::string_view> args) {
     std::size_t topk = 10;
     mse::TokenizerOptions opts;
     mse::IntersectMode imode = mse::IntersectMode::Galloping;
+    std::string synonyms_path;
+    bool use_mmap = false;
     for (std::size_t i = 2; i < args.size(); ++i) {
         if (args[i] == "--mode" && i + 1 < args.size()) {
             mode = std::string(args[++i]);
@@ -146,7 +132,16 @@ int cmd_query(std::vector<std::string_view> args) {
             opts.remove_stopwords = true;
         } else if (args[i] == "--intersect" && i + 1 < args.size()) {
             auto v = args[++i];
-            imode = (v == "two") ? mse::IntersectMode::TwoPointer : mse::IntersectMode::Galloping;
+            if (v == "two")
+                imode = mse::IntersectMode::TwoPointer;
+            else if (v == "skip")
+                imode = mse::IntersectMode::SkipPointers;
+            else
+                imode = mse::IntersectMode::Galloping;
+        } else if (args[i] == "--synonyms" && i + 1 < args.size()) {
+            synonyms_path = std::string(args[++i]);
+        } else if (args[i] == "--mmap") {
+            use_mmap = true;
         } else {
             std::cerr << "Unknown arg: " << args[i] << "\n";
             return 2;
@@ -154,7 +149,9 @@ int cmd_query(std::vector<std::string_view> args) {
     }
 
     mse::Index index;
-    if (!mse::load_index(index, index_path)) {
+    const bool loaded =
+        use_mmap ? mse::load_index_mmap(index, index_path) : mse::load_index(index, index_path);
+    if (!loaded) {
         std::cerr << "Failed to load index: " << index_path << "\n";
         return 1;
     }
@@ -165,8 +162,16 @@ int cmd_query(std::vector<std::string_view> args) {
         return 1;
     }
 
+    std::unique_ptr<mse::QueryNode> rewritten;
+    const mse::QueryNode* root = &(*ast);
+    if (!synonyms_path.empty()) {
+        auto syns = mse::load_synonyms(synonyms_path);
+        rewritten = mse::rewrite_synonyms(*ast, syns);
+        root = rewritten.get();
+    }
+
     if (mode == "boolean") {
-        auto hits = mse::evaluate_boolean(index, *ast, imode);
+        auto hits = mse::evaluate_boolean(index, *root, imode);
         if (hits.empty()) {
             std::cout << "No results\n";
             return 0;
@@ -177,37 +182,18 @@ int cmd_query(std::vector<std::string_view> args) {
     }
 
     if (mode == "bm25") {
-        auto terms = mse::collect_query_terms(*ast);
+        auto terms = mse::collect_query_terms(*root);
         std::vector<mse::DocId> candidates;
-        // Operators present → boolean filter then re-rank.
-        bool has_ops = false;
-        std::function<void(const mse::QueryNode&)> check = [&](const mse::QueryNode& n) {
-            if (n.kind == mse::NodeKind::And || n.kind == mse::NodeKind::Or ||
-                n.kind == mse::NodeKind::Not || n.kind == mse::NodeKind::Phrase)
-                has_ops = true;
-            if (n.left)
-                check(*n.left);
-            if (n.right)
-                check(*n.right);
-            if (n.child)
-                check(*n.child);
-        };
-        check(*ast);
-        // Juxtaposition creates And nodes — treat multi-term as filtered if And/Or/Not/Phrase.
-        // Simpler rule from plan: boolean filter when operators; pure term lists → BM25.
-        // Juxtaposition is AND which is an operator — for "cats milk" we still want BM25 over
-        // union of docs. Plan: "pure term lists go straight to BM25" — detect only Term leaves
-        // with ANDs from juxtaposition... Use: if tree is only Terms joined by And, treat as
-        // bag-of-terms BM25; otherwise boolean filter.
-        std::function<bool(const mse::QueryNode&)> only_and_terms = [&](const mse::QueryNode& n) -> bool {
+        std::function<bool(const mse::QueryNode&)> only_and_terms =
+            [&](const mse::QueryNode& n) -> bool {
             if (n.kind == mse::NodeKind::Term)
                 return true;
             if (n.kind == mse::NodeKind::And)
                 return only_and_terms(*n.left) && only_and_terms(*n.right);
             return false;
         };
-        if (!only_and_terms(*ast))
-            candidates = mse::evaluate_boolean(index, *ast, imode);
+        if (!only_and_terms(*root))
+            candidates = mse::evaluate_boolean(index, *root, imode);
 
         auto ranked = mse::rank_bm25(index, terms, topk, candidates);
         if (ranked.empty()) {

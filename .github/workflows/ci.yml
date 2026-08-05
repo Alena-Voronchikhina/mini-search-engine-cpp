@@ -12,42 +12,98 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
         build_type: [Debug, Release]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Configure
+        shell: bash
         run: |
-          set -e
           cmake -S . -B build \
             -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
             -DMSE_BUILD_TESTS=ON \
             -DMSE_BUILD_BENCH=ON \
-          || cmake -S . -B build \
-            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-            -DMSE_BUILD_TESTS=ON \
-            -DMSE_BUILD_BENCH=ON
+            -DMSE_BUILD_FUZZ=ON
       - name: Build
-        run: cmake --build build --config ${{ matrix.build_type }} -j
+        run: cmake --build build --config ${{ matrix.build_type }} -j 2
       - name: Test
+        shell: bash
         run: ctest --test-dir build --output-on-failure --build-config ${{ matrix.build_type }}
+      - name: Fuzz smoke
+        shell: bash
+        run: |
+          if [[ -x build/mse_fuzz ]]; then ./build/mse_fuzz
+          elif [[ -x build/${{ matrix.build_type }}/mse_fuzz ]]; then ./build/${{ matrix.build_type }}/mse_fuzz
+          elif [[ -x build/Release/mse_fuzz.exe ]]; then ./build/Release/mse_fuzz.exe
+          elif [[ -x build/Debug/mse_fuzz.exe ]]; then ./build/Debug/mse_fuzz.exe
+          else echo "mse_fuzz missing"; ls -R build | head -80; exit 1
+          fi
 
   sanitizers:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Configure with ASan+UBSan
         run: >
           cmake -S . -B build-san
           -DCMAKE_BUILD_TYPE=Debug
           -DMSE_BUILD_TESTS=ON
           -DMSE_BUILD_BENCH=OFF
+          -DMSE_BUILD_FUZZ=ON
           -DMSE_ENABLE_ASAN=ON
           -DMSE_ENABLE_UBSAN=ON
       - name: Build
-        run: cmake --build build-san -j
+        run: cmake --build build-san -j 2
       - name: Test
         run: ctest --test-dir build-san --output-on-failure
         env:
           ASAN_OPTIONS: detect_leaks=1
           UBSAN_OPTIONS: print_stacktrace=1
+      - name: Fuzz smoke
+        run: ./build-san/mse_fuzz
+
+  libfuzzer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Configure libFuzzer target
+        run: >
+          cmake -S . -B build-fuzz
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_CXX_COMPILER=clang++
+          -DMSE_BUILD_TESTS=OFF
+          -DMSE_BUILD_BENCH=OFF
+          -DMSE_BUILD_FUZZ=ON
+          -DMSE_FUZZER_LIBFUZZER=ON
+      - name: Build
+        run: cmake --build build-fuzz -j 2
+      - name: Run campaign (60s)
+        run: |
+          mkdir -p fuzz-out
+          ./build-fuzz/mse_fuzz fuzz/corpus -max_total_time=60 -artifact_prefix=fuzz-out/ || true
+          # Fail only on crash artifacts
+          if ls fuzz-out/crash-* 1>/dev/null 2>&1; then
+            echo "libFuzzer found crashes:"; ls -la fuzz-out; exit 1
+          fi
+          echo "No crashes in 60s campaign"
+
+  clang-tidy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install clang-tidy
+        run: sudo apt-get update && sudo apt-get install -y clang-tidy
+      - name: Configure
+        run: >
+          cmake -S . -B build-tidy
+          -DCMAKE_BUILD_TYPE=Debug
+          -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+          -DMSE_BUILD_TESTS=OFF
+          -DMSE_BUILD_BENCH=OFF
+          -DMSE_BUILD_FUZZ=OFF
+      - name: Run clang-tidy (warnings as errors on our headers/sources)
+        run: |
+          set -euo pipefail
+          FILES=$(find src include/mse -name '*.cpp' -o -name '*.hpp')
+          clang-tidy -p build-tidy --config-file=.clang-tidy \
+            --warnings-as-errors='*' $FILES
