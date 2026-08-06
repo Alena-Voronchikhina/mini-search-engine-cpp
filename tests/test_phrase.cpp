@@ -1,9 +1,9 @@
-#include <catch2/catch_test_macros.hpp>
-
 #include "mse/index.hpp"
 #include "mse/query_eval.hpp"
 #include "mse/query_parser.hpp"
 #include "mse/tokenizer.hpp"
+
+#include <catch2/catch_test_macros.hpp>
 
 TEST_CASE("phrase requires adjacency", "[phrase]") {
     mse::Tokenizer tok;

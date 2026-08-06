@@ -16,6 +16,6 @@ struct BuildOptions {
 };
 
 // Index all .txt/.md files under `dir` (recursive). Uses threads>1 for parallel shard build+merge.
-[[nodiscard]] Index build_index_from_dir(const std::filesystem::path& dir, BuildOptions opts = {});
+[[nodiscard]] Index build_index_from_dir(const std::filesystem::path &dir, BuildOptions opts = {});
 
 } // namespace mse

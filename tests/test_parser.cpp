@@ -1,6 +1,6 @@
-#include <catch2/catch_test_macros.hpp>
-
 #include "mse/query_parser.hpp"
+
+#include <catch2/catch_test_macros.hpp>
 
 using mse::NodeKind;
 using mse::QueryParser;

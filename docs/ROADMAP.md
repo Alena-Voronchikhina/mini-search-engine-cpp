@@ -1,5 +1,8 @@
 # Roadmap
 
+Track work here and via [GitHub Issues](https://github.com/Alena-Voronchikhina/mini-search-engine-cpp/issues)
+(bug / feature templates under `.github/ISSUE_TEMPLATE/`). Releases: `v0.2.0`–`v0.4.0`.
+
 ## Done
 
 ### v0.2 — Core IR
@@ -28,8 +31,15 @@
 - [x] Query rewrite / synonym expansion (`--synonyms`)
 - [x] mmap-backed index load (`--mmap`)
 
-## Future ideas (optional)
+### Packaging polish
+- [x] README limitations match shipped features
+- [x] RSS memory footprint in published bench output
+- [x] clang-format enforced in CI
+- [x] Issue templates + CONTRIBUTING + portfolio status links
 
-- Persistent skip tables inside on-disk index format
-- Query-time synonym injection into BM25 term weights
-- Larger public IR collections (MS MARCO subset) in bench scripts
+## Open / future (file an issue to claim)
+
+- [ ] Persist skip tables inside on-disk index format
+- [ ] Query-time synonym injection into BM25 term weights
+- [ ] Larger public IR collections (MS MARCO subset) in bench scripts
+- [ ] GitHub Project board mirroring this checklist (optional org/user Projects setup)

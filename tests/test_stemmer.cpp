@@ -1,6 +1,6 @@
-#include <catch2/catch_test_macros.hpp>
-
 #include "mse/stemmer.hpp"
+
+#include <catch2/catch_test_macros.hpp>
 
 TEST_CASE("porter stem common forms", "[stemmer]") {
     REQUIRE(mse::porter_stem("caresses") == "caress");

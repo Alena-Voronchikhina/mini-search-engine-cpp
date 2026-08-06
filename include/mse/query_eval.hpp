@@ -10,10 +10,10 @@ namespace mse {
 
 enum class IntersectMode { TwoPointer, Galloping, SkipPointers };
 
-[[nodiscard]] std::vector<DocId> evaluate_boolean(const Index& index, const QueryNode& root,
+[[nodiscard]] std::vector<DocId> evaluate_boolean(const Index &index, const QueryNode &root,
                                                   IntersectMode mode = IntersectMode::Galloping);
 
-[[nodiscard]] bool phrase_matches(const Index& index, const std::vector<std::string>& terms,
+[[nodiscard]] bool phrase_matches(const Index &index, const std::vector<std::string> &terms,
                                   DocId doc);
 
 } // namespace mse

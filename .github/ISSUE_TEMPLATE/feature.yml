@@ -1,0 +1,40 @@
+name: Feature / stretch goal
+description: Propose IR, performance, or tooling work aligned with the roadmap
+title: "[feat] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: Why does this matter for the engine or portfolio narrative?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: Concrete behavior, API, or metric to add
+    validations:
+      required: true
+  - type: dropdown
+    id: roadmap
+    attributes:
+      label: Roadmap bucket
+      options:
+        - Core IR
+        - Performance
+        - Reliability / testing
+        - Tooling / CI
+        - Documentation
+        - Stretch / research
+    validations:
+      required: true
+  - type: checkboxes
+    id: acceptance
+    attributes:
+      label: Acceptance ideas
+      options:
+        - label: Unit or integration tests included
+        - label: Docs / CHANGELOG updated if user-facing
+        - label: Bench numbers refreshed if performance-related

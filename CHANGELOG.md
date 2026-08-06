@@ -1,5 +1,16 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- RSS after build in `mse_bench` / published `docs/bench-latest.md`
+- clang-format dry-run gate in CI
+- `CONTRIBUTING.md` and GitHub issue templates (bug / feature)
+- Shared `mse::rss_bytes()` helper
+
+### Fixed
+- README limitations and test-count layout matched shipped v0.3/v0.4 features
+
 ## [0.4.0] — 2026-08-05
 
 ### Added

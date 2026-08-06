@@ -2,11 +2,12 @@
 
 A from-scratch **information retrieval** engine in modern C++20: positional inverted index, boolean + phrase queries, BM25 top‑k ranking, index serialization, and measurable posting-list optimizations.
 
-**Outcomes (Apple M1, Release, synthetic 5k-doc corpus):**
-- Indexes **~107k docs/s**
-- BM25 query **p50 ≈ 684 µs**, **p95 ≈ 801 µs**
-- Galloping intersection cuts skewed-list **p95 latency by ~95.6%** vs two-pointer
-- **55 tests** pass in CI across Linux / macOS / Windows (Debug+Release), plus **ASan+UBSan**, **clang-tidy (Werror)**, fuzz smoke, and a **60s libFuzzer** campaign
+**Outcomes (Linux x86_64, Ubuntu 24.04, Clang 18, Release, synthetic 5k-doc corpus):**
+- Indexes **~140k docs/s**
+- BM25 query **p50 ≈ 894 µs**, **p95 ≈ 1.03 ms**
+- Galloping intersection cuts skewed-list **p95 latency by ~96.4%** vs two-pointer
+- Index **~0.84 MB** on disk; process **RSS ≈ 11.8 MiB** after build
+- **55 tests** pass in CI across Linux / macOS / Windows (Debug+Release), plus **ASan+UBSan**, **clang-format**, **clang-tidy (Werror)**, fuzz smoke, and a **60s libFuzzer** campaign
 
 ## Features
 
@@ -18,7 +19,7 @@ A from-scratch **information retrieval** engine in modern C++20: positional inve
 - Two-pointer, **galloping**, and **skip-pointer** posting intersection
 - Binary index save/load (`MSEI` v2 with delta+varbyte compressed postings); optional **mmap** load
 - Optional multithreaded tokenization (`--threads N`) and **synonym rewrite** (`--synonyms`)
-- Catch2 tests, fuzz smoke + libFuzzer CI, clang-tidy Werror; benchmark harness with published numbers
+- Catch2 tests, fuzz smoke + libFuzzer CI, clang-format + clang-tidy Werror; benchmark harness with published numbers
 
 ## Architecture
 
@@ -79,17 +80,18 @@ CMake options: `MSE_BUILD_TESTS`, `MSE_BUILD_BENCH`, `MSE_BUILD_FUZZ`, `MSE_ENAB
 
 ## Benchmark results
 
-From [`docs/bench-latest.md`](docs/bench-latest.md) (Apple M1, macOS, Release, seed=42):
+From [`docs/bench-latest.md`](docs/bench-latest.md) (Linux x86_64, Ubuntu 24.04, Clang 18, Release, seed=42):
 
 | Metric | Value |
 |--------|-------|
 | Docs | 5,000 |
-| Build throughput | ~107,054 docs/s |
-| Index on disk | ~1.95 MB |
-| BM25 p50 / p95 | 684 µs / 801 µs |
-| Intersect two-pointer p95 | 47.1 µs |
-| Intersect galloping p95 | 2.1 µs |
-| **Galloping p95 improvement** | **~95.6%** |
+| Build throughput | ~139,964 docs/s |
+| Index on disk | ~0.84 MB |
+| RSS after build | ~11.8 MiB |
+| BM25 p50 / p95 | 894 µs / 1.03 ms |
+| Intersect two-pointer p95 | 50.3 µs |
+| Intersect galloping p95 | 1.8 µs |
+| **Galloping p95 improvement** | **~96.4%** |
 
 Methodology: [`docs/performance.md`](docs/performance.md).
 
@@ -99,14 +101,24 @@ Methodology: [`docs/performance.md`](docs/performance.md).
 - [`docs/design.md`](docs/design.md) — indexing, ranking, intersection
 - [`docs/performance.md`](docs/performance.md) — how numbers are measured
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — completed checklist + stretch goals
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — coding standards + how to contribute
 - [`CHANGELOG.md`](CHANGELOG.md)
+
+## Project status (portfolio)
+
+| Signal | Where |
+|--------|-------|
+| Releases + tags | [GitHub Releases](https://github.com/Alena-Voronchikhina/mini-search-engine-cpp/releases) (`v0.2.0`–`v0.4.0`) |
+| Changelog | [`CHANGELOG.md`](CHANGELOG.md) |
+| Planned / completed work | [`docs/ROADMAP.md`](docs/ROADMAP.md) + [Issues](https://github.com/Alena-Voronchikhina/mini-search-engine-cpp/issues) |
+| CI green across OSes | [Actions](https://github.com/Alena-Voronchikhina/mini-search-engine-cpp/actions) |
 
 ## Project layout
 
 ```
 include/mse/     Public library headers
 src/             Library + CLI (search)
-tests/           Catch2 (43 cases)
+tests/           Catch2 (55 cases)
 benchmarks/      mse_bench harness
 data/fixtures/   Tiny corpus for demos/tests
 scripts/         Corpus prep + benchmark runners
@@ -115,16 +127,14 @@ docs/            Design + methodology + latest numbers
 
 ## Contributing
 
-- C++20, clang-format (LLVM-based [`.clang-format`](.clang-format))
-- Keep changes covered by tests; run `ctest` before PRs
-- Prefer small, reviewable PRs (IR feature / perf / docs)
+See [`CONTRIBUTING.md`](CONTRIBUTING.md). Short version: C++20, clang-format, keep tests green, prefer small PRs.
 
-## Limitations & roadmap (Phase 2)
+## Limitations & future work
 
-- No delta/varbyte posting compression yet
-- Indexing is single-threaded
-- No Windows CI matrix (Linux + macOS only for now)
-- No parser fuzzing / clang-tidy gate in CI yet
+- Skip tables are rebuilt in memory; not yet persisted as a separate on-disk structure
+- Synonym expansion does not re-weight BM25 term importance
+- Bench corpus is synthetic; public IR collections (e.g. MS MARCO subset) are optional follow-ups
+- See [`docs/ROADMAP.md`](docs/ROADMAP.md) for stretch ideas
 
 ## License
 

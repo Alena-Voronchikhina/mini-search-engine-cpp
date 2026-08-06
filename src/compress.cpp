@@ -2,7 +2,7 @@
 
 namespace mse {
 
-void varbyte_encode(std::uint32_t value, std::vector<std::uint8_t>& out) {
+void varbyte_encode(std::uint32_t value, std::vector<std::uint8_t> &out) {
     while (value >= 0x80u) {
         out.push_back(static_cast<std::uint8_t>((value & 0x7Fu) | 0x80u));
         value >>= 7;
@@ -10,7 +10,7 @@ void varbyte_encode(std::uint32_t value, std::vector<std::uint8_t>& out) {
     out.push_back(static_cast<std::uint8_t>(value));
 }
 
-bool varbyte_decode(const std::uint8_t*& cur, const std::uint8_t* end, std::uint32_t& value) {
+bool varbyte_decode(const std::uint8_t *&cur, const std::uint8_t *end, std::uint32_t &value) {
     value = 0;
     int shift = 0;
     while (cur < end) {
@@ -25,7 +25,7 @@ bool varbyte_decode(const std::uint8_t*& cur, const std::uint8_t* end, std::uint
     return false;
 }
 
-std::vector<std::uint32_t> delta_encode(const std::vector<std::uint32_t>& sorted) {
+std::vector<std::uint32_t> delta_encode(const std::vector<std::uint32_t> &sorted) {
     std::vector<std::uint32_t> deltas;
     deltas.reserve(sorted.size());
     std::uint32_t prev = 0;
@@ -37,7 +37,7 @@ std::vector<std::uint32_t> delta_encode(const std::vector<std::uint32_t>& sorted
     return deltas;
 }
 
-std::vector<std::uint32_t> delta_decode(const std::vector<std::uint32_t>& deltas) {
+std::vector<std::uint32_t> delta_decode(const std::vector<std::uint32_t> &deltas) {
     std::vector<std::uint32_t> out;
     out.reserve(deltas.size());
     std::uint32_t prev = 0;
@@ -48,7 +48,7 @@ std::vector<std::uint32_t> delta_decode(const std::vector<std::uint32_t>& deltas
     return out;
 }
 
-std::vector<std::uint8_t> compress_sorted(const std::vector<std::uint32_t>& sorted) {
+std::vector<std::uint8_t> compress_sorted(const std::vector<std::uint32_t> &sorted) {
     const auto deltas = delta_encode(sorted);
     std::vector<std::uint8_t> out;
     out.reserve(deltas.size() * 2);
@@ -57,10 +57,10 @@ std::vector<std::uint8_t> compress_sorted(const std::vector<std::uint32_t>& sort
     return out;
 }
 
-bool decompress_sorted(const std::vector<std::uint8_t>& bytes, std::vector<std::uint32_t>& out) {
+bool decompress_sorted(const std::vector<std::uint8_t> &bytes, std::vector<std::uint32_t> &out) {
     out.clear();
-    const std::uint8_t* cur = bytes.data();
-    const std::uint8_t* end = bytes.data() + bytes.size();
+    const std::uint8_t *cur = bytes.data();
+    const std::uint8_t *end = bytes.data() + bytes.size();
     std::vector<std::uint32_t> deltas;
     while (cur < end) {
         std::uint32_t v = 0;
