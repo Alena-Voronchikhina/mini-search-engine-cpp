@@ -1,25 +1,30 @@
 # Mini Search Engine (C++)
 
-A from-scratch **information retrieval** engine in modern C++20: positional inverted index, boolean + phrase queries, BM25 top‑k ranking, index serialization, and measurable posting-list optimizations.
+From-scratch C++20 information retrieval: positional inverted index, boolean + phrase
+queries, BM25 top-k, compressed index I/O, and a few posting-list intersection variants
+with measured latency.
 
-**Outcomes (Linux x86_64, Ubuntu 24.04, Clang 18, Release, synthetic 5k-doc corpus):**
-- Indexes **~140k docs/s**
-- BM25 query **p50 ≈ 894 µs**, **p95 ≈ 1.03 ms**
-- Galloping intersection cuts skewed-list **p95 latency by ~96.4%** vs two-pointer
-- Index **~0.84 MB** on disk; process **RSS ≈ 11.8 MiB** after build
-- **55 tests** pass in CI across Linux / macOS / Windows (Debug+Release), plus **ASan+UBSan**, **clang-format**, **clang-tidy (Werror)**, fuzz smoke, and a **60s libFuzzer** campaign
+Numbers below are from a Linux x86_64 / Ubuntu 24.04 / Clang 18 Release build on a
+synthetic 5k-doc corpus (see [`docs/bench-latest.md`](docs/bench-latest.md)):
+
+- ~140k docs/s index build
+- BM25 p50 ≈ 894 µs, p95 ≈ 1.03 ms
+- Galloping intersection ~96% faster p95 than two-pointer on a skewed list pair
+- Index ~0.84 MB on disk; RSS ≈ 11.8 MiB after build
+
+CI runs 55 Catch2 tests on Linux / macOS / Windows (Debug + Release), plus ASan/UBSan,
+clang-format, clang-tidy, and a short libFuzzer job.
 
 ## Features
 
 - Boolean queries: `AND` / `OR` / `NOT`, parentheses, juxtaposition = AND
-- Phrase search: `"adjacent tokens"` via positional postings
-- BM25 ranked retrieval with top‑k heap
+- Phrase search via positional postings (`"adjacent tokens"`)
+- BM25 ranked retrieval with a top-k heap
 - Tokenizer: case folding, punctuation splitting, optional stopwords + Porter stemming
 - Query parser with offset + message on syntax errors
-- Two-pointer, **galloping**, and **skip-pointer** posting intersection
-- Binary index save/load (`MSEI` v2 with delta+varbyte compressed postings); optional **mmap** load
-- Optional multithreaded tokenization (`--threads N`) and **synonym rewrite** (`--synonyms`)
-- Catch2 tests, fuzz smoke + libFuzzer CI, clang-format + clang-tidy Werror; benchmark harness with published numbers
+- Two-pointer, galloping, and skip-pointer posting intersection
+- Binary index save/load (`MSEI` v2, delta + varbyte); optional mmap load
+- Optional multithreaded tokenization (`--threads N`) and synonym rewrite (`--synonyms`)
 
 ## Architecture
 
@@ -40,7 +45,8 @@ flowchart LR
   bm25 --> results
 ```
 
-**Core data structure:** term → sorted postings `(doc_id, [positions...])`, plus per-doc length and global `N` / `avgdl` for BM25.
+Core structure: term → sorted postings `(doc_id, [positions...])`, plus per-doc length
+and global `N` / `avgdl` for BM25.
 
 ## Complexity
 
@@ -48,11 +54,11 @@ flowchart LR
 |-----------|----------------|-------|
 | Index build | O(T) | T = total tokens |
 | AND (two-pointer) | O(\|A\| + \|B\|) | Baseline |
-| AND (galloping) | O(\|short\| · log\|long\|) | Wins when lengths are skewed |
+| AND (galloping) | O(\|short\| · log\|long\|) | Helps when lengths are skewed |
 | Phrase | O(candidates · phrase_len) | Position adjacency check |
 | BM25 top‑k | O(\|D_q\| · \|q\| + \|D_q\| log k) | Min-heap of size k |
-| Serialize / load | O(postings) | v2: delta + varbyte compressed |
-| Parallel tokenize | O(T / threads) | Index assembly remains serial |
+| Serialize / load | O(postings) | v2: delta + varbyte |
+| Parallel tokenize | O(T / threads) | Index assembly stays serial |
 
 ## Quick start
 
@@ -61,7 +67,7 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j
 ctest --test-dir build --output-on-failure
 
-# Build an index from fixtures (parallel tokenize)
+# Build an index from fixtures
 ./build/search index build data/fixtures -o index.bin --threads 4
 
 # Boolean / phrase
@@ -76,11 +82,12 @@ ctest --test-dir build --output-on-failure
 # or: ./scripts/run_benchmarks.sh 5000
 ```
 
-CMake options: `MSE_BUILD_TESTS`, `MSE_BUILD_BENCH`, `MSE_BUILD_FUZZ`, `MSE_ENABLE_ASAN`, `MSE_ENABLE_UBSAN`, `MSE_ENABLE_CLANG_TIDY`.
+CMake options: `MSE_BUILD_TESTS`, `MSE_BUILD_BENCH`, `MSE_BUILD_FUZZ`, `MSE_ENABLE_ASAN`,
+`MSE_ENABLE_UBSAN`, `MSE_ENABLE_CLANG_TIDY`.
 
 ## Benchmark results
 
-From [`docs/bench-latest.md`](docs/bench-latest.md) (Linux x86_64, Ubuntu 24.04, Clang 18, Release, seed=42):
+From [`docs/bench-latest.md`](docs/bench-latest.md) (same machine / flags as above, seed=42):
 
 | Metric | Value |
 |--------|-------|
@@ -91,51 +98,40 @@ From [`docs/bench-latest.md`](docs/bench-latest.md) (Linux x86_64, Ubuntu 24.04,
 | BM25 p50 / p95 | 894 µs / 1.03 ms |
 | Intersect two-pointer p95 | 50.3 µs |
 | Intersect galloping p95 | 1.8 µs |
-| **Galloping p95 improvement** | **~96.4%** |
+| Galloping p95 improvement | ~96.4% |
 
-Methodology: [`docs/performance.md`](docs/performance.md).
+How these are measured: [`docs/performance.md`](docs/performance.md).
 
-## Documentation
+## Docs
 
-- [`docs/query-language.md`](docs/query-language.md) — syntax, precedence, errors
+- [`docs/query-language.md`](docs/query-language.md) — syntax and errors
 - [`docs/design.md`](docs/design.md) — indexing, ranking, intersection
-- [`docs/performance.md`](docs/performance.md) — how numbers are measured
-- [`docs/ROADMAP.md`](docs/ROADMAP.md) — completed checklist + stretch goals
-- [`CONTRIBUTING.md`](CONTRIBUTING.md) — coding standards + how to contribute
+- [`docs/performance.md`](docs/performance.md) — bench methodology
+- [`docs/ROADMAP.md`](docs/ROADMAP.md) — what’s done / what’s next
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — build, format, tests
 - [`CHANGELOG.md`](CHANGELOG.md)
+- [Releases](https://github.com/Alena-Voronchikhina/mini-search-engine-cpp/releases) ·
+  [Issues](https://github.com/Alena-Voronchikhina/mini-search-engine-cpp/issues) ·
+  [Actions](https://github.com/Alena-Voronchikhina/mini-search-engine-cpp/actions)
 
-## Project status (portfolio)
-
-| Signal | Where |
-|--------|-------|
-| Releases + tags | [GitHub Releases](https://github.com/Alena-Voronchikhina/mini-search-engine-cpp/releases) (`v0.2.0`–`v0.4.0`) |
-| Changelog | [`CHANGELOG.md`](CHANGELOG.md) |
-| Planned / completed work | [`docs/ROADMAP.md`](docs/ROADMAP.md) + [Issues](https://github.com/Alena-Voronchikhina/mini-search-engine-cpp/issues) |
-| CI green across OSes | [Actions](https://github.com/Alena-Voronchikhina/mini-search-engine-cpp/actions) |
-
-## Project layout
+## Layout
 
 ```
-include/mse/     Public library headers
+include/mse/     Public headers
 src/             Library + CLI (search)
 tests/           Catch2 (55 cases)
-benchmarks/      mse_bench harness
-data/fixtures/   Tiny corpus for demos/tests
-scripts/         Corpus prep + benchmark runners
-docs/            Design + methodology + latest numbers
+benchmarks/      mse_bench
+data/fixtures/   Tiny demo corpus
+scripts/         Corpus prep + bench runners
+docs/            Design notes + published numbers
 ```
 
-## Contributing
+## Limitations
 
-See [`CONTRIBUTING.md`](CONTRIBUTING.md). Short version: C++20, clang-format, keep tests green, prefer small PRs.
-
-## Limitations & future work
-
-- Skip tables are rebuilt in memory; not yet persisted as a separate on-disk structure
-- Synonym expansion does not re-weight BM25 term importance
-- Bench corpus is synthetic; public IR collections (e.g. MS MARCO subset) are optional follow-ups
-- See [`docs/ROADMAP.md`](docs/ROADMAP.md) for stretch ideas
+- Skip tables are rebuilt in memory; not stored in the on-disk index yet
+- Synonym expansion does not re-weight BM25 terms
+- Bench corpus is synthetic (a public collection like an MS MARCO subset would be nicer)
 
 ## License
 
-Personal portfolio project — see repository for terms.
+Personal project — see the repository for terms.

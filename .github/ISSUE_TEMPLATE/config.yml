@@ -2,4 +2,4 @@ blank_issues_enabled: true
 contact_links:
   - name: Roadmap
     url: https://github.com/Alena-Voronchikhina/mini-search-engine-cpp/blob/main/docs/ROADMAP.md
-    about: Completed milestones and stretch ideas for this portfolio project
+    about: What’s done and what’s next
