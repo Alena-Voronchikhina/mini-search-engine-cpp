@@ -1,11 +1,10 @@
-#include <catch2/catch_test_macros.hpp>
-
+#include "mse/index.hpp"
 #include "mse/query_eval.hpp"
 #include "mse/query_parser.hpp"
 #include "mse/rewrite.hpp"
 #include "mse/tokenizer.hpp"
-#include "mse/index.hpp"
 
+#include <catch2/catch_test_macros.hpp>
 #include <filesystem>
 #include <fstream>
 

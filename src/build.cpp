@@ -7,7 +7,7 @@
 namespace mse {
 namespace {
 
-bool read_file(const std::filesystem::path& p, std::string& out) {
+bool read_file(const std::filesystem::path &p, std::string &out) {
     std::ifstream in(p);
     if (!in)
         return false;
@@ -15,11 +15,11 @@ bool read_file(const std::filesystem::path& p, std::string& out) {
     return true;
 }
 
-std::vector<std::filesystem::path> collect_docs(const std::filesystem::path& dir) {
+std::vector<std::filesystem::path> collect_docs(const std::filesystem::path &dir) {
     std::vector<std::filesystem::path> paths;
     if (!std::filesystem::exists(dir))
         return paths;
-    for (auto const& entry : std::filesystem::recursive_directory_iterator(dir)) {
+    for (auto const &entry : std::filesystem::recursive_directory_iterator(dir)) {
         if (!entry.is_regular_file())
             continue;
         const auto ext = entry.path().extension().string();
@@ -32,7 +32,7 @@ std::vector<std::filesystem::path> collect_docs(const std::filesystem::path& dir
 
 } // namespace
 
-Index build_index_from_dir(const std::filesystem::path& dir, BuildOptions opts) {
+Index build_index_from_dir(const std::filesystem::path &dir, BuildOptions opts) {
     auto paths = collect_docs(dir);
     std::size_t nthreads = opts.threads;
     if (nthreads == 0)
@@ -68,12 +68,12 @@ Index build_index_from_dir(const std::filesystem::path& dir, BuildOptions opts) 
                 }
             });
         }
-        for (auto& w : workers)
+        for (auto &w : workers)
             w.join();
     }
 
     Index index;
-    for (auto& it : corpus) {
+    for (auto &it : corpus) {
         if (it.path.empty())
             continue;
         index.add_document(std::move(it.path), it.tokens);

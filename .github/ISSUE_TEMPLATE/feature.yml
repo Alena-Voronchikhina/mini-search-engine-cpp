@@ -1,0 +1,40 @@
+name: Feature
+description: Suggest an IR, performance, or tooling change
+title: "[feat] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Why
+      description: What problem does this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: Concrete behavior, API, or metric
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Core IR
+        - Performance
+        - Testing
+        - CI / tooling
+        - Docs
+        - Other
+    validations:
+      required: true
+  - type: checkboxes
+    id: acceptance
+    attributes:
+      label: Checklist
+      options:
+        - label: Tests included (if behavior changes)
+        - label: Docs / CHANGELOG updated if user-facing
+        - label: Bench numbers refreshed if performance-related

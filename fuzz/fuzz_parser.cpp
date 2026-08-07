@@ -10,10 +10,10 @@
 #include <string_view>
 #include <vector>
 
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     if (size == 0 || size > 4096)
         return 0;
-    std::string_view sv(reinterpret_cast<const char*>(data), size);
+    std::string_view sv(reinterpret_cast<const char *>(data), size);
 
     mse::TokenizerOptions opts;
     opts.stem = (data[0] & 1) != 0;
@@ -30,17 +30,13 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
 #if defined(MSE_FUZZER_STANDALONE)
 int main() {
     const std::vector<std::string> samples = {
-        "cats AND milk",
-        "\"unterminated",
-        "(a OR b) AND NOT c",
-        "(((((",
-        "\"quick brown fox\"",
-        "",
-        std::string(3000, 'a'),
-        std::string("\xff OR AND \"(( NOT", 16),
+        "cats AND milk",        "\"unterminated",
+        "(a OR b) AND NOT c",   "(((((",
+        "\"quick brown fox\"",  "",
+        std::string(3000, 'a'), std::string("\xff OR AND \"(( NOT", 16),
     };
-    for (const auto& s : samples) {
-        LLVMFuzzerTestOneInput(reinterpret_cast<const uint8_t*>(s.data()), s.size());
+    for (const auto &s : samples) {
+        LLVMFuzzerTestOneInput(reinterpret_cast<const uint8_t *>(s.data()), s.size());
     }
     return 0;
 }
