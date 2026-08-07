@@ -8,11 +8,11 @@
 namespace mse {
 namespace {
 
-const std::unordered_set<std::string>& stopwords() {
+const std::unordered_set<std::string> &stopwords() {
     static const std::unordered_set<std::string> k = {
-        "a",    "an",  "and",  "are", "as",   "at",   "be",   "by",   "for",  "from",
-        "has",  "he",  "in",   "is",  "it",   "its",  "of",   "on",   "that", "the",
-        "to",   "was", "were", "will","with", "or",   "not",  "this", "but",  "they",
+        "a",   "an",  "and",  "are",  "as",   "at",  "be",  "by",   "for",  "from",
+        "has", "he",  "in",   "is",   "it",   "its", "of",  "on",   "that", "the",
+        "to",  "was", "were", "will", "with", "or",  "not", "this", "but",  "they",
     };
     return k;
 }

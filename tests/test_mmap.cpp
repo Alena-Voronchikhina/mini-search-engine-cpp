@@ -1,5 +1,3 @@
-#include <catch2/catch_test_macros.hpp>
-
 #include "mse/index.hpp"
 #include "mse/mmap_load.hpp"
 #include "mse/query_eval.hpp"
@@ -7,6 +5,7 @@
 #include "mse/serialize.hpp"
 #include "mse/tokenizer.hpp"
 
+#include <catch2/catch_test_macros.hpp>
 #include <filesystem>
 
 TEST_CASE("mmap load matches buffered load", "[mmap]") {

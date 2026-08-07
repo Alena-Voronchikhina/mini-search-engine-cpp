@@ -6,11 +6,11 @@
 
 1. **Build throughput** — wall time to tokenize + add + finalize
 2. **Index size** — bytes of serialized `index.bin`
-3. **BM25 latency** — 100 queries cycling a small query set; p50/p95 in microseconds
-4. **Intersection microbench** — 200 runs of two-pointer vs galloping on a **skewed** pair:
+3. **RSS after build** — process resident set size (`/proc/self/status` on Linux, Mach task info on macOS; `0` if unavailable)
+4. **BM25 latency** — 100 queries cycling a small query set; p50/p95 in microseconds
+5. **Intersection microbench** — 200 runs of two-pointer vs galloping on a **skewed** pair:
    - long list: `max(10N, 50_000)` consecutive doc IDs
    - short list: every 997th ID
-5. Optional RSS on macOS/Linux via `search bench`
 
 Reproduce:
 
@@ -27,7 +27,7 @@ Or prepare an on-disk corpus:
 
 ## Published snapshot
 
-See [`bench-latest.md`](bench-latest.md). Numbers vary by CPU, compiler, and load; always record machine + build type when comparing.
+See [`bench-latest.md`](bench-latest.md). Numbers vary by CPU, compiler, and load; always record machine + build type when comparing. Refresh the README table when headline metrics change.
 
 ## Interpreting galloping gains
 

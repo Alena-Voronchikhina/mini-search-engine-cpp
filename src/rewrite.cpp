@@ -9,7 +9,7 @@ namespace mse {
 namespace {
 
 std::string lower(std::string s) {
-    for (char& c : s)
+    for (char &c : s)
         c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
     return s;
 }
@@ -28,9 +28,9 @@ std::unique_ptr<QueryNode> or_chain(std::vector<std::unique_ptr<QueryNode>> node
     return acc;
 }
 
-std::unique_ptr<QueryNode> clone_rewrite(const QueryNode& n, const SynonymMap& syns);
+std::unique_ptr<QueryNode> clone_rewrite(const QueryNode &n, const SynonymMap &syns);
 
-std::unique_ptr<QueryNode> expand_term(const std::string& term, const SynonymMap& syns) {
+std::unique_ptr<QueryNode> expand_term(const std::string &term, const SynonymMap &syns) {
     std::vector<std::unique_ptr<QueryNode>> alts;
     auto self = std::make_unique<QueryNode>();
     self->kind = NodeKind::Term;
@@ -39,7 +39,7 @@ std::unique_ptr<QueryNode> expand_term(const std::string& term, const SynonymMap
 
     auto it = syns.find(term);
     if (it != syns.end()) {
-        for (const auto& alt : it->second) {
+        for (const auto &alt : it->second) {
             if (alt == term)
                 continue;
             auto t = std::make_unique<QueryNode>();
@@ -51,7 +51,7 @@ std::unique_ptr<QueryNode> expand_term(const std::string& term, const SynonymMap
     return or_chain(std::move(alts));
 }
 
-std::unique_ptr<QueryNode> clone_rewrite(const QueryNode& n, const SynonymMap& syns) {
+std::unique_ptr<QueryNode> clone_rewrite(const QueryNode &n, const SynonymMap &syns) {
     switch (n.kind) {
     case NodeKind::Term:
         return expand_term(n.term, syns);
@@ -81,7 +81,7 @@ std::unique_ptr<QueryNode> clone_rewrite(const QueryNode& n, const SynonymMap& s
 
 } // namespace
 
-SynonymMap load_synonyms(const std::string& path) {
+SynonymMap load_synonyms(const std::string &path) {
     SynonymMap map;
     std::ifstream in(path);
     if (!in)
@@ -104,9 +104,9 @@ SynonymMap load_synonyms(const std::string& path) {
         }
         if (parts.size() < 2)
             continue;
-        for (const auto& key : parts) {
-            auto& bucket = map[key];
-            for (const auto& v : parts) {
+        for (const auto &key : parts) {
+            auto &bucket = map[key];
+            for (const auto &v : parts) {
                 if (std::find(bucket.begin(), bucket.end(), v) == bucket.end())
                     bucket.push_back(v);
             }
@@ -115,7 +115,7 @@ SynonymMap load_synonyms(const std::string& path) {
     return map;
 }
 
-std::unique_ptr<QueryNode> rewrite_synonyms(const QueryNode& root, const SynonymMap& syns) {
+std::unique_ptr<QueryNode> rewrite_synonyms(const QueryNode &root, const SynonymMap &syns) {
     if (syns.empty()) {
         // deep clone via expand with empty map = identity for terms
         return clone_rewrite(root, syns);

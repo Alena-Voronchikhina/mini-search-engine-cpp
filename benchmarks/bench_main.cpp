@@ -2,6 +2,7 @@
 #include "mse/intersect.hpp"
 #include "mse/query_parser.hpp"
 #include "mse/ranker.hpp"
+#include "mse/rss.hpp"
 #include "mse/serialize.hpp"
 #include "mse/tokenizer.hpp"
 
@@ -30,7 +31,7 @@ static double percentile(std::vector<double> v, double p) {
     return v[i] * (1.0 - frac) + v[i + 1] * frac;
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
     std::size_t ndocs = 5000;
     std::string out_path;
     std::uint32_t seed = 42;
@@ -44,10 +45,11 @@ int main(int argc, char* argv[]) {
             seed = static_cast<std::uint32_t>(std::stoul(argv[++i]));
     }
 
-    static const char* vocab[] = {
-        "cat", "dog", "milk", "love", "play", "search", "engine", "index", "query", "rank",
-        "token", "stem", "score", "document", "posting", "phrase", "boolean", "vector",
-        "latency", "memory", "disk", "benchmark", "gallop", "pointer", "intersect", "bm25",
+    static const char *vocab[] = {
+        "cat",       "dog",    "milk",    "love",      "play",    "search", "engine",
+        "index",     "query",  "rank",    "token",     "stem",    "score",  "document",
+        "posting",   "phrase", "boolean", "vector",    "latency", "memory", "disk",
+        "benchmark", "gallop", "pointer", "intersect", "bm25",
     };
     constexpr std::size_t vocab_n = sizeof(vocab) / sizeof(vocab[0]);
     std::mt19937 rng(seed);
@@ -117,6 +119,7 @@ int main(int argc, char* argv[]) {
     const double p95_two = percentile(two_s, 0.95);
     const double p95_gal = percentile(gal_s, 0.95);
     const double improvement = p95_two > 0 ? (1.0 - p95_gal / p95_two) * 100.0 : 0.0;
+    const auto rss = mse::rss_bytes();
 
     std::ostringstream report;
     report << "# Benchmark results\n\n";
@@ -124,10 +127,11 @@ int main(int argc, char* argv[]) {
     report << "- Build time: " << build_s << " s (" << (ndocs / std::max(build_s, 1e-9))
            << " docs/s)\n";
     report << "- Index size on disk: " << idx_size << " bytes\n";
+    report << "- RSS after build: " << rss << " bytes\n";
     report << "- BM25 query latency: p50=" << percentile(q_us, 0.50)
            << " us, p95=" << percentile(q_us, 0.95) << " us\n";
-    report << "- Intersect two-pointer: p50=" << percentile(two_s, 0.50)
-           << " us, p95=" << p95_two << " us\n";
+    report << "- Intersect two-pointer: p50=" << percentile(two_s, 0.50) << " us, p95=" << p95_two
+           << " us\n";
     report << "- Intersect galloping: p50=" << percentile(gal_s, 0.50) << " us, p95=" << p95_gal
            << " us\n";
     report << "- Galloping vs two-pointer p95 improvement: " << improvement << "%\n";

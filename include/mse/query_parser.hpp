@@ -13,7 +13,7 @@
 namespace mse {
 
 class ParseResult {
-public:
+  public:
     static ParseResult ok(std::unique_ptr<QueryNode> node) {
         ParseResult r;
         r.data_ = std::move(node);
@@ -28,30 +28,32 @@ public:
     [[nodiscard]] explicit operator bool() const {
         return std::holds_alternative<std::unique_ptr<QueryNode>>(data_);
     }
-    [[nodiscard]] QueryNode& operator*() { return *std::get<std::unique_ptr<QueryNode>>(data_); }
-    [[nodiscard]] const QueryNode& operator*() const {
+    [[nodiscard]] QueryNode &operator*() { return *std::get<std::unique_ptr<QueryNode>>(data_); }
+    [[nodiscard]] const QueryNode &operator*() const {
         return *std::get<std::unique_ptr<QueryNode>>(data_);
     }
-    [[nodiscard]] QueryNode* operator->() { return std::get<std::unique_ptr<QueryNode>>(data_).get(); }
-    [[nodiscard]] const QueryNode* operator->() const {
+    [[nodiscard]] QueryNode *operator->() {
         return std::get<std::unique_ptr<QueryNode>>(data_).get();
     }
-    [[nodiscard]] const QueryError& error() const { return std::get<QueryError>(data_); }
-    [[nodiscard]] std::unique_ptr<QueryNode>& node() {
+    [[nodiscard]] const QueryNode *operator->() const {
+        return std::get<std::unique_ptr<QueryNode>>(data_).get();
+    }
+    [[nodiscard]] const QueryError &error() const { return std::get<QueryError>(data_); }
+    [[nodiscard]] std::unique_ptr<QueryNode> &node() {
         return std::get<std::unique_ptr<QueryNode>>(data_);
     }
 
-private:
+  private:
     std::variant<std::unique_ptr<QueryNode>, QueryError> data_{QueryError{}};
 };
 
 class QueryParser {
-public:
+  public:
     explicit QueryParser(TokenizerOptions tok_opts = {});
 
     [[nodiscard]] ParseResult parse(std::string_view input) const;
 
-private:
+  private:
     TokenizerOptions tok_opts_;
 };
 

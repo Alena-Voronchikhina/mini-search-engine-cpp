@@ -8,9 +8,9 @@
 
 namespace mse {
 
-std::vector<std::string> collect_query_terms(const QueryNode& root) {
+std::vector<std::string> collect_query_terms(const QueryNode &root) {
     std::vector<std::string> out;
-    std::function<void(const QueryNode&)> walk = [&](const QueryNode& n) {
+    std::function<void(const QueryNode &)> walk = [&](const QueryNode &n) {
         switch (n.kind) {
         case NodeKind::Term:
             out.push_back(n.term);
@@ -35,8 +35,8 @@ std::vector<std::string> collect_query_terms(const QueryNode& root) {
     return out;
 }
 
-std::vector<RankedHit> rank_bm25(const Index& index, const std::vector<std::string>& terms,
-                                 std::size_t topk, const std::vector<DocId>& candidates,
+std::vector<RankedHit> rank_bm25(const Index &index, const std::vector<std::string> &terms,
+                                 std::size_t topk, const std::vector<DocId> &candidates,
                                  Bm25Params params) {
     if (terms.empty() || topk == 0 || index.num_docs() == 0)
         return {};
@@ -44,11 +44,11 @@ std::vector<RankedHit> rank_bm25(const Index& index, const std::vector<std::stri
     std::vector<DocId> docs = candidates;
     if (docs.empty()) {
         std::unordered_set<DocId> seen;
-        for (const auto& t : terms) {
-            const auto* p = index.postings(t);
+        for (const auto &t : terms) {
+            const auto *p = index.postings(t);
             if (!p)
                 continue;
-            for (const auto& post : *p) {
+            for (const auto &post : *p) {
                 if (seen.insert(post.doc_id).second)
                     docs.push_back(post.doc_id);
             }
@@ -62,7 +62,7 @@ std::vector<RankedHit> rank_bm25(const Index& index, const std::vector<std::stri
     auto score_doc = [&](DocId d) {
         double score = 0.0;
         const double dl = static_cast<double>(index.documents()[d].length);
-        for (const auto& t : terms) {
+        for (const auto &t : terms) {
             const auto tf = static_cast<double>(index.tf(t, d));
             if (tf == 0.0)
                 continue;

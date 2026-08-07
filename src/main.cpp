@@ -6,6 +6,7 @@
 #include "mse/query_parser.hpp"
 #include "mse/ranker.hpp"
 #include "mse/rewrite.hpp"
+#include "mse/rss.hpp"
 #include "mse/serialize.hpp"
 #include "mse/tokenizer.hpp"
 
@@ -25,50 +26,17 @@
 #include <string_view>
 #include <vector>
 
-#if defined(__APPLE__)
-#include <mach/mach.h>
-#elif defined(__linux__)
-#include <unistd.h>
-#endif
-
 namespace fs = std::filesystem;
 
 namespace {
 
 void usage() {
-    std::cerr
-        << "Usage:\n"
-        << "  search index build <dir> -o <index.bin> [--stem] [--stopwords] [--threads N]\n"
-        << "  search query <index.bin> <query> [--mode boolean|bm25] [--topk N]\n"
-        << "         [--stem] [--stopwords] [--intersect two|gallop|skip]\n"
-        << "         [--synonyms file] [--mmap]\n"
-        << "  search bench [--docs N] [--out path] [--seed S]\n";
-}
-
-std::uint64_t rss_bytes() {
-#if defined(__APPLE__)
-    mach_task_basic_info info{};
-    mach_msg_type_number_t count = MACH_TASK_BASIC_INFO_COUNT;
-    if (task_info(mach_task_self(), MACH_TASK_BASIC_INFO, reinterpret_cast<task_info_t>(&info),
-                  &count) != KERN_SUCCESS)
-        return 0;
-    return static_cast<std::uint64_t>(info.resident_size);
-#elif defined(__linux__)
-    std::ifstream f("/proc/self/status");
-    std::string key;
-    while (f >> key) {
-        if (key == "VmRSS:") {
-            std::uint64_t kb = 0;
-            f >> kb;
-            return kb * 1024;
-        }
-        std::string rest;
-        std::getline(f, rest);
-    }
-    return 0;
-#else
-    return 0;
-#endif
+    std::cerr << "Usage:\n"
+              << "  search index build <dir> -o <index.bin> [--stem] [--stopwords] [--threads N]\n"
+              << "  search query <index.bin> <query> [--mode boolean|bm25] [--topk N]\n"
+              << "         [--stem] [--stopwords] [--intersect two|gallop|skip]\n"
+              << "         [--synonyms file] [--mmap]\n"
+              << "  search bench [--docs N] [--out path] [--seed S]\n";
 }
 
 int cmd_index(std::vector<std::string_view> args) {
@@ -163,7 +131,7 @@ int cmd_query(std::vector<std::string_view> args) {
     }
 
     std::unique_ptr<mse::QueryNode> rewritten;
-    const mse::QueryNode* root = &(*ast);
+    const mse::QueryNode *root = &(*ast);
     if (!synonyms_path.empty()) {
         auto syns = mse::load_synonyms(synonyms_path);
         rewritten = mse::rewrite_synonyms(*ast, syns);
@@ -184,8 +152,8 @@ int cmd_query(std::vector<std::string_view> args) {
     if (mode == "bm25") {
         auto terms = mse::collect_query_terms(*root);
         std::vector<mse::DocId> candidates;
-        std::function<bool(const mse::QueryNode&)> only_and_terms =
-            [&](const mse::QueryNode& n) -> bool {
+        std::function<bool(const mse::QueryNode &)> only_and_terms =
+            [&](const mse::QueryNode &n) -> bool {
             if (n.kind == mse::NodeKind::Term)
                 return true;
             if (n.kind == mse::NodeKind::And)
@@ -200,7 +168,7 @@ int cmd_query(std::vector<std::string_view> args) {
             std::cout << "No results\n";
             return 0;
         }
-        for (const auto& h : ranked) {
+        for (const auto &h : ranked) {
             std::cout << h.score << "\t" << index.documents()[h.doc_id].path << "\n";
         }
         return 0;
@@ -239,11 +207,11 @@ int cmd_bench(std::vector<std::string_view> args) {
         }
     }
 
-    static const char* vocab[] = {
-        "cat", "dog", "milk", "love", "play", "search", "engine", "index", "query", "rank",
-        "token", "stem", "score", "document", "posting", "phrase", "boolean", "vector", "space",
-        "latency", "memory", "disk", "benchmark", "gallop", "pointer", "intersect", "bm25",
-        "porter", "stopword", "corpus",
+    static const char *vocab[] = {
+        "cat",     "dog",       "milk",  "love",    "play",     "search",   "engine",    "index",
+        "query",   "rank",      "token", "stem",    "score",    "document", "posting",   "phrase",
+        "boolean", "vector",    "space", "latency", "memory",   "disk",     "benchmark", "gallop",
+        "pointer", "intersect", "bm25",  "porter",  "stopword", "corpus",
     };
     constexpr std::size_t vocab_n = sizeof(vocab) / sizeof(vocab[0]);
 
@@ -305,7 +273,7 @@ int cmd_bench(std::vector<std::string_view> args) {
                                         "\"index query\"", "bm25 AND latency"};
     std::vector<double> q_us;
     for (int i = 0; i < 100; ++i) {
-        const auto& q = queries[static_cast<std::size_t>(i) % queries.size()];
+        const auto &q = queries[static_cast<std::size_t>(i) % queries.size()];
         auto ast = parser.parse(q);
         if (!ast)
             continue;
@@ -317,7 +285,7 @@ int cmd_bench(std::vector<std::string_view> args) {
         q_us.push_back(std::chrono::duration<double, std::micro>(b - a).count());
     }
 
-    const auto rss = rss_bytes();
+    const auto rss = mse::rss_bytes();
     std::ostringstream report;
     report << "# Benchmark results\n\n";
     report << "- Machine: local bench harness\n";
@@ -347,7 +315,7 @@ int cmd_bench(std::vector<std::string_view> args) {
 
 } // namespace
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
     if (argc < 2) {
         usage();
         return 2;

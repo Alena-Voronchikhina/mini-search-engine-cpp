@@ -20,7 +20,7 @@ struct LexTok {
 };
 
 class Lexer {
-public:
+  public:
     Lexer(std::string_view in, TokenizerOptions opts) : in_(in), tok_(opts) {}
 
     LexTok next() {
@@ -56,7 +56,7 @@ public:
             word.push_back(in_[pos_++]);
         }
         std::string upper = word;
-        for (char& ch : upper)
+        for (char &ch : upper)
             ch = static_cast<char>(std::toupper(static_cast<unsigned char>(ch)));
         if (upper == "AND")
             return {TokKind::And, word, start, {}};
@@ -76,7 +76,7 @@ public:
         return {TokKind::Term, norm, start, {}};
     }
 
-private:
+  private:
     void skip_ws() {
         while (pos_ < in_.size() && std::isspace(static_cast<unsigned char>(in_[pos_])))
             ++pos_;
@@ -88,7 +88,7 @@ private:
 };
 
 class Parser {
-public:
+  public:
     Parser(std::string_view in, TokenizerOptions opts) : lex_(in, opts) { advance(); }
 
     ParseResult parse() {
@@ -100,7 +100,7 @@ public:
         return root;
     }
 
-private:
+  private:
     void advance() { cur_ = lex_.next(); }
 
     ParseResult parse_or() {

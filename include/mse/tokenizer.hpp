@@ -9,12 +9,12 @@
 namespace mse {
 
 class Tokenizer {
-public:
+  public:
     explicit Tokenizer(TokenizerOptions opts = {});
 
     [[nodiscard]] std::vector<std::string> tokenize(std::string_view text) const;
 
-private:
+  private:
     TokenizerOptions opts_;
 };
 
