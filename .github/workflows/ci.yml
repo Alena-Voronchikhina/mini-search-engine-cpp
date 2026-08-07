@@ -120,3 +120,18 @@ jobs:
           FILES=$(find src include/mse tests benchmarks fuzz -name '*.cpp' -o -name '*.hpp')
           # shellcheck disable=SC2086
           clang-format --dry-run --Werror $FILES
+
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install lcov
+        run: sudo apt-get update && sudo apt-get install -y lcov
+      - name: Run coverage
+        run: ./scripts/coverage.sh docs/coverage-latest.md
+      - name: Upload coverage summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-latest
+          path: docs/coverage-latest.md
+

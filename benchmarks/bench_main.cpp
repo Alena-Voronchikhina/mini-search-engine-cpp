@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -15,7 +16,15 @@
 #include <random>
 #include <sstream>
 #include <string>
+#include <thread>
 #include <vector>
+
+#if defined(__linux__)
+#include <sys/utsname.h>
+#elif defined(__APPLE__)
+#include <sys/sysctl.h>
+#include <sys/utsname.h>
+#endif
 
 namespace fs = std::filesystem;
 
@@ -29,6 +38,81 @@ static double percentile(std::vector<double> v, double p) {
     if (i + 1 >= v.size())
         return v.back();
     return v[i] * (1.0 - frac) + v[i + 1] * frac;
+}
+
+static std::string compiler_version() {
+#if defined(__clang__)
+    return "Clang " + std::to_string(__clang_major__) + "." + std::to_string(__clang_minor__) +
+           "." + std::to_string(__clang_patchlevel__);
+#elif defined(__GNUC__)
+    return "GCC " + std::to_string(__GNUC__) + "." + std::to_string(__GNUC_MINOR__) + "." +
+           std::to_string(__GNUC_PATCHLEVEL__);
+#elif defined(_MSC_VER)
+    return "MSVC " + std::to_string(_MSC_VER);
+#else
+    return "unknown";
+#endif
+}
+
+static std::string read_first_matching_line(const char *path, const char *prefix) {
+    std::ifstream in(path);
+    std::string line;
+    const std::string pfx(prefix);
+    while (std::getline(in, line)) {
+        if (line.rfind(pfx, 0) == 0)
+            return line.substr(pfx.size());
+    }
+    return {};
+}
+
+static std::string trim_ws(std::string s) {
+    while (!s.empty() &&
+           (s.front() == ' ' || s.front() == '\t' || s.front() == '"' || s.front() == ':'))
+        s.erase(s.begin());
+    while (!s.empty() &&
+           (s.back() == ' ' || s.back() == '\t' || s.back() == '"' || s.back() == '\r'))
+        s.pop_back();
+    return s;
+}
+
+static void append_machine_info(std::ostringstream &report) {
+    report << "- Machine:\n";
+
+#if defined(__linux__) || defined(__APPLE__)
+    utsname uts{};
+    if (uname(&uts) == 0) {
+        report << "  - OS: " << uts.sysname << " " << uts.release << " (" << uts.machine << ")\n";
+    }
+#endif
+
+#if defined(__linux__)
+    {
+        std::string pretty = trim_ws(read_first_matching_line("/etc/os-release", "PRETTY_NAME="));
+        if (!pretty.empty())
+            report << "  - Distro: " << pretty << "\n";
+        std::string cpu = trim_ws(read_first_matching_line("/proc/cpuinfo", "model name"));
+        if (!cpu.empty())
+            report << "  - CPU: " << cpu << "\n";
+        std::string mem = trim_ws(read_first_matching_line("/proc/meminfo", "MemTotal:"));
+        if (!mem.empty())
+            report << "  - RAM: " << mem << "\n";
+    }
+#elif defined(__APPLE__)
+    {
+        char buf[256]{};
+        size_t len = sizeof(buf);
+        if (sysctlbyname("machdep.cpu.brand_string", buf, &len, nullptr, 0) == 0)
+            report << "  - CPU: " << buf << "\n";
+        std::uint64_t mem = 0;
+        len = sizeof(mem);
+        if (sysctlbyname("hw.memsize", &mem, &len, nullptr, 0) == 0)
+            report << "  - RAM: " << (mem / (1024 * 1024)) << " MiB\n";
+    }
+#endif
+
+    report << "  - Logical CPUs: " << std::max(1u, std::thread::hardware_concurrency()) << "\n";
+    report << "  - Compiler: " << compiler_version() << "\n";
+    report << "  - Build: CMAKE_BUILD_TYPE=Release (run via scripts/bench.sh)\n";
 }
 
 int main(int argc, char *argv[]) {
@@ -123,11 +207,18 @@ int main(int argc, char *argv[]) {
 
     std::ostringstream report;
     report << "# Benchmark results\n\n";
+    append_machine_info(report);
+    report << "- Reproduce: `./scripts/bench.sh " << ndocs << " docs/bench-latest.md`\n";
+    report << "- Dataset: synthetic fixed vocab (" << vocab_n
+           << " terms), doc length 20–80 tokens, seed=" << seed << "\n";
     report << "- Docs: " << ndocs << " (seed=" << seed << ")\n";
     report << "- Build time: " << build_s << " s (" << (ndocs / std::max(build_s, 1e-9))
            << " docs/s)\n";
     report << "- Index size on disk: " << idx_size << " bytes\n";
-    report << "- RSS after build: " << rss << " bytes\n";
+    report << "- RSS after build: " << rss << " bytes";
+    if (rss > 0)
+        report << " (~" << (rss / (1024.0 * 1024.0)) << " MiB)";
+    report << "\n";
     report << "- BM25 query latency: p50=" << percentile(q_us, 0.50)
            << " us, p95=" << percentile(q_us, 0.95) << " us\n";
     report << "- Intersect two-pointer: p50=" << percentile(two_s, 0.50) << " us, p95=" << p95_two

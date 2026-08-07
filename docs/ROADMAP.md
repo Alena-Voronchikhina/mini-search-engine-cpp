@@ -34,6 +34,8 @@ Releases so far: `v0.2.0`–`v0.4.0`.
 
 ## Next
 
+- [ ] Distributed shards (term- or doc-partitioned) with scatter/gather query
+- [ ] Incremental / near-real-time indexing (segments + deletes)
 - [ ] Persist skip tables in the on-disk index
 - [ ] Feed synonyms into BM25 term weights
 - [ ] Bench against a larger public collection (e.g. MS MARCO subset)

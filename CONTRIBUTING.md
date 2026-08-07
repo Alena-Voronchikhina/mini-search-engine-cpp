@@ -35,10 +35,20 @@ cmake --build build-san -j && ctest --test-dir build-san --output-on-failure
 If you change something performance-related, refresh the published numbers:
 
 ```bash
-./scripts/run_benchmarks.sh 5000 docs/bench-latest.md
+./scripts/bench.sh 5000 docs/bench-latest.md
 ```
 
-Update the README table if the headline metrics move.
+Update the README results table if the headline metrics move.
+
+## Coverage
+
+Needs `lcov`. Writes line % for `src/` + `include/mse/`:
+
+```bash
+./scripts/coverage.sh docs/coverage-latest.md
+```
+
+Update the coverage badge in the README if the percentage moves a lot.
 
 ## PRs
 
