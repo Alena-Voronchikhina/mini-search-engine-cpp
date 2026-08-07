@@ -1,0 +1,43 @@
+name: Bug report
+description: Something incorrect, crashing, or inconsistent with docs
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What went wrong?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: Commands, query strings, corpus size, OS/compiler
+      placeholder: |
+        ./build/search query index.bin '...' --mode boolean
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected vs actual
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - tokenizer
+        - parser
+        - boolean / phrase eval
+        - BM25
+        - serialize / mmap
+        - intersection / skips
+        - CI / build
+        - docs
+        - other
+    validations:
+      required: true

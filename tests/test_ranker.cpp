@@ -1,9 +1,9 @@
-#include <catch2/catch_test_macros.hpp>
-
 #include "mse/index.hpp"
 #include "mse/query_parser.hpp"
 #include "mse/ranker.hpp"
 #include "mse/tokenizer.hpp"
+
+#include <catch2/catch_test_macros.hpp>
 
 TEST_CASE("bm25 ranks relevant doc higher", "[ranker]") {
     mse::Tokenizer tok;
@@ -23,7 +23,8 @@ TEST_CASE("bm25 respects topk", "[ranker]") {
     mse::Tokenizer tok;
     mse::Index ix;
     for (int i = 0; i < 10; ++i)
-        ix.add_document("d" + std::to_string(i), tok.tokenize("shared term unique" + std::to_string(i)));
+        ix.add_document("d" + std::to_string(i),
+                        tok.tokenize("shared term unique" + std::to_string(i)));
     ix.finalize();
     auto hits = mse::rank_bm25(ix, {"shared"}, 3);
     REQUIRE(hits.size() == 3);

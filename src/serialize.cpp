@@ -15,11 +15,10 @@ constexpr std::uint32_t kVersionUncompressed = 1;
 constexpr std::uint32_t kVersionCompressed = 2;
 
 struct Cursor {
-    const std::uint8_t* cur{};
-    const std::uint8_t* end{};
+    const std::uint8_t *cur{};
+    const std::uint8_t *end{};
 
-    template <typename T>
-    bool read_pod(T& v) {
+    template <typename T> bool read_pod(T &v) {
         if (static_cast<std::size_t>(end - cur) < sizeof(T))
             return false;
         std::memcpy(&v, cur, sizeof(T));
@@ -27,16 +26,16 @@ struct Cursor {
         return true;
     }
 
-    bool read_string(std::string& s) {
+    bool read_string(std::string &s) {
         std::uint32_t n = 0;
         if (!read_pod(n) || static_cast<std::size_t>(end - cur) < n)
             return false;
-        s.assign(reinterpret_cast<const char*>(cur), n);
+        s.assign(reinterpret_cast<const char *>(cur), n);
         cur += n;
         return true;
     }
 
-    bool read_bytes(std::vector<std::uint8_t>& bytes) {
+    bool read_bytes(std::vector<std::uint8_t> &bytes) {
         std::uint32_t n = 0;
         if (!read_pod(n) || static_cast<std::size_t>(end - cur) < n)
             return false;
@@ -46,13 +45,12 @@ struct Cursor {
     }
 };
 
-template <typename T>
-bool write_pod(std::ostream& out, const T& v) {
-    out.write(reinterpret_cast<const char*>(&v), sizeof(T));
+template <typename T> bool write_pod(std::ostream &out, const T &v) {
+    out.write(reinterpret_cast<const char *>(&v), sizeof(T));
     return static_cast<bool>(out);
 }
 
-bool write_string(std::ostream& out, const std::string& s) {
+bool write_string(std::ostream &out, const std::string &s) {
     const auto n = static_cast<std::uint32_t>(s.size());
     if (!write_pod(out, n))
         return false;
@@ -60,26 +58,26 @@ bool write_string(std::ostream& out, const std::string& s) {
     return static_cast<bool>(out);
 }
 
-bool write_bytes(std::ostream& out, const std::vector<std::uint8_t>& bytes) {
+bool write_bytes(std::ostream &out, const std::vector<std::uint8_t> &bytes) {
     const auto n = static_cast<std::uint32_t>(bytes.size());
     if (!write_pod(out, n))
         return false;
     if (n)
-        out.write(reinterpret_cast<const char*>(bytes.data()), static_cast<std::streamsize>(n));
+        out.write(reinterpret_cast<const char *>(bytes.data()), static_cast<std::streamsize>(n));
     return static_cast<bool>(out);
 }
 
-bool write_postings_v2(std::ostream& out, const std::vector<Posting>& plist) {
+bool write_postings_v2(std::ostream &out, const std::vector<Posting> &plist) {
     std::vector<std::uint32_t> doc_ids;
     doc_ids.reserve(plist.size());
-    for (const auto& p : plist)
+    for (const auto &p : plist)
         doc_ids.push_back(p.doc_id);
     if (!write_bytes(out, compress_sorted(doc_ids)))
         return false;
     const auto np = static_cast<std::uint32_t>(plist.size());
     if (!write_pod(out, np))
         return false;
-    for (const auto& p : plist) {
+    for (const auto &p : plist) {
         std::vector<std::uint32_t> positions(p.positions.begin(), p.positions.end());
         if (!write_bytes(out, compress_sorted(positions)))
             return false;
@@ -87,19 +85,19 @@ bool write_postings_v2(std::ostream& out, const std::vector<Posting>& plist) {
     return true;
 }
 
-bool read_postings_v1(Cursor& in, std::vector<Posting>& plist) {
+bool read_postings_v1(Cursor &in, std::vector<Posting> &plist) {
     std::uint32_t np = 0;
     if (!in.read_pod(np))
         return false;
     plist.resize(np);
-    for (auto& p : plist) {
+    for (auto &p : plist) {
         if (!in.read_pod(p.doc_id))
             return false;
         std::uint32_t npos = 0;
         if (!in.read_pod(npos))
             return false;
         p.positions.resize(npos);
-        for (auto& pos : p.positions) {
+        for (auto &pos : p.positions) {
             if (!in.read_pod(pos))
                 return false;
         }
@@ -107,7 +105,7 @@ bool read_postings_v1(Cursor& in, std::vector<Posting>& plist) {
     return true;
 }
 
-bool read_postings_v2(Cursor& in, std::vector<Posting>& plist) {
+bool read_postings_v2(Cursor &in, std::vector<Posting> &plist) {
     std::vector<std::uint8_t> docs_bytes;
     if (!in.read_bytes(docs_bytes))
         return false;
@@ -134,7 +132,7 @@ bool read_postings_v2(Cursor& in, std::vector<Posting>& plist) {
 } // namespace detail
 
 struct IndexSerializer {
-    static bool parse(detail::Cursor& in, Index& index) {
+    static bool parse(detail::Cursor &in, Index &index) {
         char magic[4]{};
         if (static_cast<std::size_t>(in.end - in.cur) < 4)
             return false;
@@ -155,7 +153,7 @@ struct IndexSerializer {
         if (!in.read_pod(ndocs) || !in.read_pod(tmp.avgdl_))
             return false;
         tmp.docs_.resize(ndocs);
-        for (auto& d : tmp.docs_) {
+        for (auto &d : tmp.docs_) {
             if (!in.read_string(d.path) || !in.read_pod(d.length))
                 return false;
         }
@@ -180,21 +178,21 @@ struct IndexSerializer {
         return true;
     }
 
-    static bool save(const Index& index, std::ostream& out) {
+    static bool save(const Index &index, std::ostream &out) {
         out.write(detail::kMagic, 4);
         if (!detail::write_pod(out, detail::kVersionCompressed))
             return false;
         const auto ndocs = static_cast<std::uint32_t>(index.docs_.size());
         if (!detail::write_pod(out, ndocs) || !detail::write_pod(out, index.avgdl_))
             return false;
-        for (const auto& d : index.docs_) {
+        for (const auto &d : index.docs_) {
             if (!detail::write_string(out, d.path) || !detail::write_pod(out, d.length))
                 return false;
         }
         const auto nterms = static_cast<std::uint32_t>(index.inv_.size());
         if (!detail::write_pod(out, nterms))
             return false;
-        for (const auto& [term, plist] : index.inv_) {
+        for (const auto &[term, plist] : index.inv_) {
             if (!detail::write_string(out, term) || !detail::write_postings_v2(out, plist))
                 return false;
         }
@@ -202,21 +200,21 @@ struct IndexSerializer {
     }
 };
 
-bool save_index(const Index& index, const std::string& path) {
+bool save_index(const Index &index, const std::string &path) {
     std::ofstream out(path, std::ios::binary);
     if (!out)
         return false;
     return IndexSerializer::save(index, out);
 }
 
-bool load_index_from_memory(Index& index, const std::uint8_t* data, std::size_t size) {
+bool load_index_from_memory(Index &index, const std::uint8_t *data, std::size_t size) {
     if (!data || size == 0)
         return false;
     detail::Cursor cur{data, data + size};
     return IndexSerializer::parse(cur, index);
 }
 
-bool load_index(Index& index, const std::string& path) {
+bool load_index(Index &index, const std::string &path) {
     std::ifstream in(path, std::ios::binary);
     if (!in)
         return false;
@@ -226,7 +224,7 @@ bool load_index(Index& index, const std::string& path) {
         return false;
     in.seekg(0, std::ios::beg);
     std::vector<std::uint8_t> buf(static_cast<std::size_t>(sz));
-    in.read(reinterpret_cast<char*>(buf.data()), sz);
+    in.read(reinterpret_cast<char *>(buf.data()), sz);
     if (!in)
         return false;
     return load_index_from_memory(index, buf.data(), buf.size());

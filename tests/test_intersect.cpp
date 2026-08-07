@@ -1,7 +1,6 @@
-#include <catch2/catch_test_macros.hpp>
-
 #include "mse/intersect.hpp"
 
+#include <catch2/catch_test_macros.hpp>
 #include <numeric>
 
 using mse::DocId;

@@ -1,6 +1,3 @@
-#include <catch2/catch_approx.hpp>
-#include <catch2/catch_test_macros.hpp>
-
 #include "mse/index.hpp"
 #include "mse/query_eval.hpp"
 #include "mse/query_parser.hpp"
@@ -8,6 +5,8 @@
 #include "mse/serialize.hpp"
 #include "mse/tokenizer.hpp"
 
+#include <catch2/catch_approx.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include <filesystem>
 #include <fstream>
 
@@ -18,7 +17,7 @@ TEST_CASE("end-to-end index fixtures and query", "[integration]") {
     mse::Index ix;
     const std::filesystem::path fixtures = "data/fixtures";
     REQUIRE(std::filesystem::exists(fixtures));
-    for (auto const& e : std::filesystem::directory_iterator(fixtures)) {
+    for (auto const &e : std::filesystem::directory_iterator(fixtures)) {
         if (!e.is_regular_file())
             continue;
         std::ifstream in(e.path());

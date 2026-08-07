@@ -8,11 +8,11 @@
 namespace mse {
 
 // Sorted ascending unique DocId lists.
-[[nodiscard]] std::vector<DocId> intersect_two_pointer(const std::vector<DocId>& a,
-                                                     const std::vector<DocId>& b);
+[[nodiscard]] std::vector<DocId> intersect_two_pointer(const std::vector<DocId> &a,
+                                                       const std::vector<DocId> &b);
 
-[[nodiscard]] std::vector<DocId> intersect_galloping(const std::vector<DocId>& a,
-                                                     const std::vector<DocId>& b);
+[[nodiscard]] std::vector<DocId> intersect_galloping(const std::vector<DocId> &a,
+                                                     const std::vector<DocId> &b);
 
 // Classic IR skip pointers: every ~sqrt(n) entry stores a forward jump target.
 struct SkipList {
@@ -26,17 +26,17 @@ struct SkipList {
 
 [[nodiscard]] SkipList make_skip_list(std::vector<DocId> docs);
 
-[[nodiscard]] std::vector<DocId> intersect_skip_pointers(const SkipList& a, const SkipList& b);
+[[nodiscard]] std::vector<DocId> intersect_skip_pointers(const SkipList &a, const SkipList &b);
 
 // Convenience: build skip lists then intersect (same results as two-pointer).
-[[nodiscard]] std::vector<DocId> intersect_with_skips(const std::vector<DocId>& a,
-                                                      const std::vector<DocId>& b);
+[[nodiscard]] std::vector<DocId> intersect_with_skips(const std::vector<DocId> &a,
+                                                      const std::vector<DocId> &b);
 
-[[nodiscard]] std::vector<DocId> unite(const std::vector<DocId>& a, const std::vector<DocId>& b);
+[[nodiscard]] std::vector<DocId> unite(const std::vector<DocId> &a, const std::vector<DocId> &b);
 
-[[nodiscard]] std::vector<DocId> difference(const std::vector<DocId>& a,
-                                            const std::vector<DocId>& b);
+[[nodiscard]] std::vector<DocId> difference(const std::vector<DocId> &a,
+                                            const std::vector<DocId> &b);
 
-[[nodiscard]] std::vector<DocId> posting_docs(const std::vector<Posting>& postings);
+[[nodiscard]] std::vector<DocId> posting_docs(const std::vector<Posting> &postings);
 
 } // namespace mse

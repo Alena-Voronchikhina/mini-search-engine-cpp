@@ -9,12 +9,11 @@
 namespace mse {
 namespace {
 
-bool ends_with(const std::string& w, std::string_view suf) {
-    return w.size() >= suf.size() &&
-           w.compare(w.size() - suf.size(), suf.size(), suf) == 0;
+bool ends_with(const std::string &w, std::string_view suf) {
+    return w.size() >= suf.size() && w.compare(w.size() - suf.size(), suf.size(), suf) == 0;
 }
 
-bool has_vowel(const std::string& w) {
+bool has_vowel(const std::string &w) {
     for (char c : w) {
         if (c == 'a' || c == 'e' || c == 'i' || c == 'o' || c == 'u' || c == 'y')
             return true;
@@ -23,12 +22,12 @@ bool has_vowel(const std::string& w) {
 }
 
 // Measure: number of VC sequences (Porter).
-int measure(const std::string& w) {
+int measure(const std::string &w) {
     int m = 0;
     bool in_v = false;
     for (char c : w) {
-        const bool v = (c == 'a' || c == 'e' || c == 'i' || c == 'o' || c == 'u' ||
-                        (c == 'y' && !in_v));
+        const bool v =
+            (c == 'a' || c == 'e' || c == 'i' || c == 'o' || c == 'u' || (c == 'y' && !in_v));
         if (v) {
             in_v = true;
         } else if (in_v) {
@@ -39,7 +38,7 @@ int measure(const std::string& w) {
     return m;
 }
 
-bool stem_cvc(const std::string& w) {
+bool stem_cvc(const std::string &w) {
     if (w.size() < 3)
         return false;
     const char a = w[w.size() - 3];
@@ -53,7 +52,7 @@ bool stem_cvc(const std::string& w) {
     return !is_v(a);
 }
 
-void step1a(std::string& w) {
+void step1a(std::string &w) {
     if (ends_with(w, "sses"))
         w.resize(w.size() - 2);
     else if (ends_with(w, "ies"))
@@ -64,7 +63,7 @@ void step1a(std::string& w) {
         w.pop_back();
 }
 
-void step1b(std::string& w) {
+void step1b(std::string &w) {
     bool flag = false;
     if (ends_with(w, "eed")) {
         std::string stem = w.substr(0, w.size() - 3);
@@ -86,8 +85,8 @@ void step1b(std::string& w) {
     if (flag) {
         if (ends_with(w, "at") || ends_with(w, "bl") || ends_with(w, "iz")) {
             w.push_back('e');
-        } else if (w.size() >= 2 && w[w.size() - 1] == w[w.size() - 2] &&
-                   w.back() != 'l' && w.back() != 's' && w.back() != 'z') {
+        } else if (w.size() >= 2 && w[w.size() - 1] == w[w.size() - 2] && w.back() != 'l' &&
+                   w.back() != 's' && w.back() != 'z') {
             w.pop_back();
         } else if (measure(w) == 1 && stem_cvc(w)) {
             w.push_back('e');
@@ -95,12 +94,12 @@ void step1b(std::string& w) {
     }
 }
 
-void step1c(std::string& w) {
+void step1c(std::string &w) {
     if (ends_with(w, "y") && has_vowel(w.substr(0, w.size() - 1)))
         w.back() = 'i';
 }
 
-void replace_if_m(std::string& w, std::string_view suf, std::string_view rep, int min_m) {
+void replace_if_m(std::string &w, std::string_view suf, std::string_view rep, int min_m) {
     if (!ends_with(w, suf))
         return;
     std::string stem = w.substr(0, w.size() - suf.size());
@@ -108,13 +107,13 @@ void replace_if_m(std::string& w, std::string_view suf, std::string_view rep, in
         w = stem + std::string(rep);
 }
 
-void step2(std::string& w) {
-    static const std::pair<const char*, const char*> rules[] = {
-        {"ational", "ate"}, {"tional", "tion"}, {"enci", "ence"}, {"anci", "ance"},
-        {"izer", "ize"},    {"abli", "able"},   {"alli", "al"},   {"entli", "ent"},
+void step2(std::string &w) {
+    static const std::pair<const char *, const char *> rules[] = {
+        {"ational", "ate"}, {"tional", "tion"}, {"enci", "ence"},   {"anci", "ance"},
+        {"izer", "ize"},    {"abli", "able"},   {"alli", "al"},     {"entli", "ent"},
         {"eli", "e"},       {"ousli", "ous"},   {"ization", "ize"}, {"ation", "ate"},
         {"ator", "ate"},    {"alism", "al"},    {"iveness", "ive"}, {"fulness", "ful"},
-        {"ousness", "ous"}, {"aliti", "al"},    {"iviti", "ive"}, {"biliti", "ble"},
+        {"ousness", "ous"}, {"aliti", "al"},    {"iviti", "ive"},   {"biliti", "ble"},
     };
     for (auto [suf, rep] : rules) {
         if (ends_with(w, suf)) {
@@ -124,8 +123,8 @@ void step2(std::string& w) {
     }
 }
 
-void step3(std::string& w) {
-    static const std::pair<const char*, const char*> rules[] = {
+void step3(std::string &w) {
+    static const std::pair<const char *, const char *> rules[] = {
         {"icate", "ic"}, {"ative", ""}, {"alize", "al"}, {"iciti", "ic"},
         {"ical", "ic"},  {"ful", ""},   {"ness", ""},
     };
@@ -137,11 +136,11 @@ void step3(std::string& w) {
     }
 }
 
-void step4(std::string& w) {
-    static const char* sufs[] = {"al",   "ance", "ence", "er",   "ic",   "able", "ible",
-                                 "ant",  "ement","ment", "ent",  "ou",   "ism",  "ate",
-                                 "iti",  "ous",  "ive",  "ize"};
-    for (const char* suf : sufs) {
+void step4(std::string &w) {
+    static const char *sufs[] = {"al",   "ance", "ence",  "er",   "ic",  "able",
+                                 "ible", "ant",  "ement", "ment", "ent", "ou",
+                                 "ism",  "ate",  "iti",   "ous",  "ive", "ize"};
+    for (const char *suf : sufs) {
         if (ends_with(w, suf)) {
             std::string stem = w.substr(0, w.size() - std::char_traits<char>::length(suf));
             if (measure(stem) > 1) {
@@ -157,7 +156,7 @@ void step4(std::string& w) {
     }
 }
 
-void step5(std::string& w) {
+void step5(std::string &w) {
     if (ends_with(w, "e")) {
         std::string stem = w.substr(0, w.size() - 1);
         int m = measure(stem);
