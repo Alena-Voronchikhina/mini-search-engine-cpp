@@ -3,6 +3,9 @@
 ## [Unreleased]
 
 ### Added
+- README sections for data structures, query flow, tradeoffs, CI, and next steps
+- `scripts/bench.sh` and machine/dataset header in `mse_bench` output
+- `MSE_ENABLE_COVERAGE`, `scripts/coverage.sh`, coverage CI job, `docs/coverage-latest.md`
 - RSS after build in `mse_bench` / published `docs/bench-latest.md`
 - clang-format dry-run gate in CI
 - `CONTRIBUTING.md` and GitHub issue templates (bug / feature)
