@@ -77,7 +77,7 @@ jobs:
           -DMSE_FUZZER_LIBFUZZER=ON
       - name: Build
         run: cmake --build build-fuzz -j 2
-      - name: Run campaign (60s)
+      - name: Run libFuzzer (60s)
         run: |
           mkdir -p fuzz-out
           ./build-fuzz/mse_fuzz fuzz/corpus -max_total_time=60 -artifact_prefix=fuzz-out/ || true
@@ -85,7 +85,7 @@ jobs:
           if ls fuzz-out/crash-* 1>/dev/null 2>&1; then
             echo "libFuzzer found crashes:"; ls -la fuzz-out; exit 1
           fi
-          echo "No crashes in 60s campaign"
+          echo "No crashes in 60s libFuzzer run"
 
   clang-tidy:
     runs-on: ubuntu-latest

@@ -8,9 +8,6 @@
 - `CONTRIBUTING.md` and GitHub issue templates (bug / feature)
 - Shared `mse::rss_bytes()` helper
 
-### Changed
-- README / roadmap / contributing wording — less resume fluff, same facts
-
 ### Fixed
 - README limitations and test count matched shipped v0.3/v0.4 features
 
@@ -20,7 +17,7 @@
 - Skip-pointer posting lists + `--intersect skip`
 - Synonym / query rewrite (`--synonyms file`, see `data/synonyms.txt`)
 - mmap index load (`--mmap` / `load_index_mmap`)
-- libFuzzer CI campaign (60s) with `fuzz/corpus`
+- libFuzzer CI job (60s) with `fuzz/corpus`
 - clang-tidy WarningsAsErrors in CI
 
 ## [0.3.0] — 2026-08-05
