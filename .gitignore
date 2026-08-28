@@ -12,6 +12,8 @@ search.exe
 build/
 build-san/
 build-tidy/
+build-coverage/
+build-fuzz/
 third_party/Catch2/build/
 cmake-build-*/
 out/
