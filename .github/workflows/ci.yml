@@ -130,7 +130,7 @@ jobs:
       - name: Run coverage
         run: ./scripts/coverage.sh docs/coverage-latest.md
       - name: Upload coverage summary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-latest
           path: docs/coverage-latest.md
